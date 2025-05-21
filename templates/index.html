@@ -56,10 +56,20 @@
         <div class="bg-white rounded-lg shadow-md p-6">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">Get Field ID</h2>
             <div class="flex gap-4 mb-4">
+                <button onclick="getFields()" 
+                        class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    Get Fields
+                </button>
+            </div>
+            <div class="flex gap-4 mb-4">
                 <div class="flex-1">
+                    <select id="fieldSelect" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 hidden">
+                        <option value="">Select a field...</option>
+                    </select>
                     <input type="text" 
                            id="fieldName" 
-                           placeholder="Enter field name (spaces are allowed)" 
+                           placeholder="Or enter field name (spaces are allowed)" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <p class="mt-1 text-sm text-gray-500">Field names can contain spaces and will be matched partially</p>
                 </div>
@@ -180,6 +190,70 @@
             }
         }
 
+        async function getFields() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                alert('Please enter your API key');
+                return;
+            }
+
+            const select = document.getElementById('fieldSelect');
+            select.innerHTML = '<option value="">Loading fields...</option>';
+            select.classList.remove('hidden');
+
+            try {
+                const response = await fetch('/api/fields', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        api_key: apiKey
+                    })
+                });
+
+                const rawData = await response.text(); // Get raw response text
+                const data = JSON.parse(rawData); // Parse for further processing
+                if (data.status === 'success') {
+                    // Filter out fields created on 2025-03-20 with empty updatedAt
+                    data.data = data.data.filter(field => {
+                        const shouldFilter = field.createdAt && 
+                            field.createdAt.startsWith('2025-03-20') && 
+                            (!field.updatedAt || field.updatedAt === '');
+                        return !shouldFilter;
+                    });
+
+                    select.innerHTML = '<option value="">Select a field...</option>';
+                    data.data.forEach(field => {
+                        const option = document.createElement('option');
+                        option.value = field.name;
+                        let displayText = field.name;
+                        
+                        if (field.isTeamField) {
+                            displayText += ' (Team Field)';
+                            if (field.workspaceNames && field.workspaceNames.length > 0) {
+                                displayText += ` - Used in ${field.workspaceNames.length} workspaces`;
+                            }
+                        } else {
+                            // For non-team fields, show workspace names in parentheses
+                            if (field.workspaceNames && field.workspaceNames.length > 0) {
+                                displayText += ` (${field.workspaceNames.join(', ')})`;
+                            }
+                        }
+                        
+                        option.textContent = displayText;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">Error loading fields</option>';
+                    alert('Failed to load fields: ' + data.error);
+                }
+            } catch (error) {
+                select.innerHTML = '<option value="">Error loading fields</option>';
+                alert('Error: ' + error.message);
+            }
+        }
+
         async function getFieldID() {
             const apiKey = document.getElementById('apiKey').value;
             if (!apiKey) {
@@ -187,9 +261,11 @@
                 return;
             }
 
-            const fieldName = document.getElementById('fieldName').value.trim();
+            const select = document.getElementById('fieldSelect');
+            const fieldName = select.value || document.getElementById('fieldName').value.trim();
+            
             if (!fieldName) {
-                alert('Please enter a field name');
+                alert('Please select a field or enter a field name');
                 return;
             }
             if (fieldName.length < 2) {
@@ -214,7 +290,16 @@
                 });
 
                 const data = await response.json();
-                resultPre.textContent = JSON.stringify(data, null, 2);
+                let resultText = JSON.stringify(data, null, 2);
+                
+                if (data.status === 'success' && data.field && !data.field.isTeamField) {
+                    const field = data.field;
+                    if (field.workspaceNames && field.workspaceNames.length > 0) {
+                        resultText += '\n\nWorkspaces: ' + field.workspaceNames.join(', ');
+                    }
+                }
+                
+                resultPre.textContent = resultText;
                 
                 if (data.status === 'success') {
                     resultDiv.classList.remove('bg-red-50');

@@ -7,7 +7,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"sync"
+	"strings"
 
 	"github.com/tibus/goAirfocus/airfocus"
 )
@@ -16,13 +16,10 @@ import (
 var templatesFS embed.FS
 
 //go:embed static/*
-
 var staticFS embed.FS
 
 type Server struct {
 	templates *template.Template
-	mu        sync.RWMutex      // protects apiKeys
-	apiKeys   map[string]string // session ID -> API key
 }
 
 func NewServer() (*Server, error) {
@@ -33,7 +30,6 @@ func NewServer() (*Server, error) {
 
 	return &Server{
 		templates: tmpl,
-		apiKeys:   make(map[string]string),
 	}, nil
 }
 
@@ -94,6 +90,13 @@ type FieldIDResponse struct {
 	Status string `json:"status"`
 	ID     string `json:"id,omitempty"`
 	Error  string `json:"error,omitempty"`
+	Field  *struct {
+		Name           string   `json:"name"`
+		Description    string   `json:"description"`
+		Type           string   `json:"type"`
+		IsTeamField    bool     `json:"isTeamField"`
+		WorkspaceNames []string `json:"workspaceNames,omitempty"`
+	} `json:"field,omitempty"`
 }
 
 func (s *Server) handleGetFieldID(w http.ResponseWriter, r *http.Request) {
@@ -103,30 +106,141 @@ func (s *Server) handleGetFieldID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	apiKey := r.FormValue("api_key")
-	fieldName := r.FormValue("field_name")
+	if apiKey == "" {
+		json.NewEncoder(w).Encode(FieldIDResponse{
+			Status: "error",
+			Error:  "API key is required",
+		})
+		return
+	}
 
-	if apiKey == "" || fieldName == "" {
-		http.Error(w, "API key and field name are required", http.StatusBadRequest)
+	fieldName := r.FormValue("field_name")
+	if fieldName == "" {
+		json.NewEncoder(w).Encode(FieldIDResponse{
+			Status: "error",
+			Error:  "Field name is required",
+		})
 		return
 	}
 
 	client := airfocus.NewClient(apiKey)
-	fieldID, err := client.GetFieldIDByName(r.Context(), fieldName)
-
-	response := FieldIDResponse{}
+	fields, err := client.ListFields(r.Context())
 	if err != nil {
-		response.Status = "error"
-		response.Error = err.Error()
-	} else {
-		response.Status = "success"
-		response.ID = fieldID
+		json.NewEncoder(w).Encode(FieldIDResponse{
+			Status: "error",
+			Error:  fmt.Sprintf("Failed to list fields: %v", err),
+		})
+		return
+	}
+
+	// Find the field by name (case-insensitive)
+	var foundField *airfocus.FieldWithWorkspaceNames
+	for i, field := range fields {
+		if strings.EqualFold(field.Name, fieldName) {
+			foundField = &fields[i]
+			break
+		}
+	}
+
+	if foundField == nil {
+		json.NewEncoder(w).Encode(FieldIDResponse{
+			Status: "error",
+			Error:  fmt.Sprintf("No field found with name: %s", fieldName),
+		})
+		return
+	}
+
+	response := FieldIDResponse{
+		Status: "success",
+		ID:     foundField.ID,
+		Field: &struct {
+			Name           string   `json:"name"`
+			Description    string   `json:"description"`
+			Type           string   `json:"type"`
+			IsTeamField    bool     `json:"isTeamField"`
+			WorkspaceNames []string `json:"workspaceNames,omitempty"`
+		}{
+			Name:           foundField.Name,
+			Description:    foundField.Description,
+			Type:           foundField.Type,
+			IsTeamField:    foundField.IsTeamField,
+			WorkspaceNames: foundField.WorkspaceNames,
+		},
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+// FieldListResponse represents the response for listing fields
+type FieldListResponse struct {
+	Status string           `json:"status"`
+	Data   []airfocus.Field `json:"data,omitempty"`
+	Error  string           `json:"error,omitempty"`
+}
+
+func (s *Server) handleListFields(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	if apiKey == "" {
+		http.Error(w, "API key is required", http.StatusBadRequest)
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+	fields, err := client.ListFields(r.Context())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to list fields: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Convert fields to a format suitable for JSON response
+	type FieldResponse struct {
+		ID             string   `json:"id"`
+		Name           string   `json:"name"`
+		Description    string   `json:"description"`
+		Type           string   `json:"type"`
+		CreatedAt      string   `json:"createdAt"`
+		UpdatedAt      string   `json:"updatedAt"`
+		IsTeamField    bool     `json:"isTeamField"`
+		WorkspaceNames []string `json:"workspaceNames,omitempty"`
+		Embedded       struct {
+			Workspaces []struct {
+				WorkspaceID string `json:"workspaceId"`
+				Order       int    `json:"order"`
+			} `json:"workspaces"`
+			AllWorkspaceIDs []string `json:"allWorkspaceIds"`
+		} `json:"_embedded,omitempty"`
+	}
+
+	responseFields := make([]FieldResponse, len(fields))
+	for i, field := range fields {
+		responseFields[i] = FieldResponse{
+			ID:             field.ID,
+			Name:           field.Name,
+			Description:    field.Description,
+			Type:           field.Type,
+			CreatedAt:      field.CreatedAt,
+			UpdatedAt:      field.UpdatedAt,
+			IsTeamField:    field.IsTeamField,
+			WorkspaceNames: field.WorkspaceNames,
+			Embedded:       field.Embedded,
+		}
+	}
+
+	response := struct {
+		Status string          `json:"status"`
+		Data   []FieldResponse `json:"data"`
+	}{
+		Status: "success",
+		Data:   responseFields,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func main() {
@@ -196,6 +310,9 @@ func main() {
 			"data":   summaries,
 		})
 	})
+
+	// Add the new route for listing fields
+	http.HandleFunc("/api/fields", server.handleListFields)
 
 	// Web interface
 	http.HandleFunc("/", server.handleIndex)
