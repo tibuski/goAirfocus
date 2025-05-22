@@ -25,7 +25,7 @@ type Server struct {
 func NewServer() (*Server, error) {
 	tmpl, err := template.ParseFS(templatesFS, "templates/*.html")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse templates: %w", err)
 	}
 
 	return &Server{
@@ -53,8 +53,13 @@ type WorkspaceIDResponse struct {
 }
 
 func (s *Server) handleGetWorkspaceID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(WorkspaceIDResponse{
+			Status: "error",
+			Error:  "Method not allowed",
+		})
 		return
 	}
 
@@ -62,7 +67,10 @@ func (s *Server) handleGetWorkspaceID(w http.ResponseWriter, r *http.Request) {
 	workspaceName := r.FormValue("workspace_name")
 
 	if apiKey == "" || workspaceName == "" {
-		http.Error(w, "API key and workspace name are required", http.StatusBadRequest)
+		json.NewEncoder(w).Encode(WorkspaceIDResponse{
+			Status: "error",
+			Error:  "API key and workspace name are required",
+		})
 		return
 	}
 
@@ -79,10 +87,10 @@ func (s *Server) handleGetWorkspaceID(w http.ResponseWriter, r *http.Request) {
 		response.Alias = result.Alias
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("Error encoding response: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		// Note: Can't send http.Error after writing to header/body,
+		// but logging is still important.
 	}
 }
 
@@ -100,8 +108,13 @@ type FieldIDResponse struct {
 }
 
 func (s *Server) handleGetFieldID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(FieldIDResponse{
+			Status: "error",
+			Error:  "Method not allowed",
+		})
 		return
 	}
 
@@ -168,57 +181,64 @@ func (s *Server) handleGetFieldID(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
+}
+
+// FieldAPIResponse represents a single field in the API response for listing fields
+type FieldAPIResponse struct {
+	ID             string   `json:"id"`
+	Name           string   `json:"name"`
+	Description    string   `json:"description"`
+	Type           string   `json:"type"`
+	CreatedAt      string   `json:"createdAt"`
+	UpdatedAt      string   `json:"updatedAt"`
+	IsTeamField    bool     `json:"isTeamField"`
+	WorkspaceNames []string `json:"workspaceNames,omitempty"`
 }
 
 // FieldListResponse represents the response for listing fields
 type FieldListResponse struct {
-	Status string           `json:"status"`
-	Data   []airfocus.Field `json:"data,omitempty"`
-	Error  string           `json:"error,omitempty"`
+	Status string             `json:"status"`
+	Data   []FieldAPIResponse `json:"data,omitempty"`
+	Error  string             `json:"error,omitempty"`
 }
 
 func (s *Server) handleListFields(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(FieldListResponse{
+			Status: "error",
+			Error:  "Method not allowed",
+		})
 		return
 	}
 
 	apiKey := r.FormValue("api_key")
 	if apiKey == "" {
-		http.Error(w, "API key is required", http.StatusBadRequest)
+		json.NewEncoder(w).Encode(FieldListResponse{
+			Status: "error",
+			Error:  "API key is required",
+		})
 		return
 	}
 
 	client := airfocus.NewClient(apiKey)
 	fields, err := client.ListFields(r.Context())
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to list fields: %v", err), http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(FieldListResponse{
+			Status: "error",
+			Error:  fmt.Sprintf("Failed to list fields: %v", err),
+		})
 		return
 	}
 
 	// Convert fields to a format suitable for JSON response
-	type FieldResponse struct {
-		ID             string   `json:"id"`
-		Name           string   `json:"name"`
-		Description    string   `json:"description"`
-		Type           string   `json:"type"`
-		CreatedAt      string   `json:"createdAt"`
-		UpdatedAt      string   `json:"updatedAt"`
-		IsTeamField    bool     `json:"isTeamField"`
-		WorkspaceNames []string `json:"workspaceNames,omitempty"`
-		Embedded       struct {
-			Workspaces []struct {
-				WorkspaceID string `json:"workspaceId"`
-				Order       int    `json:"order"`
-			} `json:"workspaces"`
-			AllWorkspaceIDs []string `json:"allWorkspaceIds"`
-		} `json:"_embedded,omitempty"`
-	}
-
-	responseFields := make([]FieldResponse, len(fields))
+	responseFields := make([]FieldAPIResponse, len(fields))
 	for i, field := range fields {
-		responseFields[i] = FieldResponse{
+		responseFields[i] = FieldAPIResponse{
 			ID:             field.ID,
 			Name:           field.Name,
 			Description:    field.Description,
@@ -227,20 +247,17 @@ func (s *Server) handleListFields(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt:      field.UpdatedAt,
 			IsTeamField:    field.IsTeamField,
 			WorkspaceNames: field.WorkspaceNames,
-			Embedded:       field.Embedded,
 		}
 	}
 
-	response := struct {
-		Status string          `json:"status"`
-		Data   []FieldResponse `json:"data"`
-	}{
+	response := FieldListResponse{
 		Status: "success",
 		Data:   responseFields,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
 }
 
 func main() {
@@ -258,21 +275,28 @@ func main() {
 
 	// Add new endpoint for listing all workspaces
 	http.HandleFunc("/api/workspaces", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"status": "error",
+				"error":  "Method not allowed",
+			})
 			return
 		}
 
 		apiKey := r.FormValue("api_key")
 		if apiKey == "" {
-			http.Error(w, "API key is required", http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"status": "error",
+				"error":  "API key is required",
+			})
 			return
 		}
 
 		client := airfocus.NewClient(apiKey)
 		workspaces, err := client.ListWorkspaces(r.Context())
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"status": "error",
 				"error":  err.Error(),
@@ -285,7 +309,7 @@ func main() {
 			ID           string `json:"id"`
 			Name         string `json:"name"`
 			Alias        string `json:"alias"`
-			Description  string `json:"description"`
+			// Description removed as fmt.Sprintf("%v", ws.Description.Blocks) is not a good JSON representation
 			ItemType     string `json:"itemType"`
 			ProgressMode string `json:"progressMode"`
 			Archived     bool   `json:"archived"`
@@ -297,18 +321,18 @@ func main() {
 				ID:           ws.ID,
 				Name:         ws.Name,
 				Alias:        ws.Alias,
-				Description:  fmt.Sprintf("%v", ws.Description.Blocks), // Convert blocks to string
 				ItemType:     ws.ItemType,
 				ProgressMode: ws.ProgressMode,
 				Archived:     ws.Archived,
 			}
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		if err := json.NewEncoder(w).Encode(map[string]interface{}{
 			"status": "success",
 			"data":   summaries,
-		})
+		}); err != nil {
+			log.Printf("Error encoding response: %v", err)
+		}
 	})
 
 	// Add the new route for listing fields

@@ -26,39 +26,42 @@ func NewClient(apiKey string) *Client {
 	}
 }
 
-// WorkspaceSearchQuery represents the query parameters for workspace search
-type WorkspaceSearchQuery struct {
-	Sort struct {
-		Type string `json:"type"`
-		Name struct {
-			Direction string `json:"direction"`
-		} `json:"name"`
-	} `json:"sort"`
-	Archived bool `json:"archived"`
-	Filter   *struct {
-		Type          string `json:"type"`
-		Mode          string `json:"mode"`
-		Text          string `json:"text"`
-		CaseSensitive bool   `json:"caseSensitive"`
-	} `json:"filter,omitempty"`
-}
+// --- Workspace Search Query Structs ---
 
-// WorkspaceSearchQuerySort represents the sorting options for workspace search
-type WorkspaceSearchQuerySort struct {
-	Name WorkspaceSearchQuerySortName `json:"name"`
-}
-
-// WorkspaceSearchQuerySortName represents sorting by name
-type WorkspaceSearchQuerySortName struct {
+// WorkspaceSearchSortName represents sorting by name direction
+type WorkspaceSearchSortName struct {
 	Direction string `json:"direction"` // "asc" or "desc"
 }
+
+// WorkspaceSearchSort represents the sorting options for workspace search
+type WorkspaceSearchSort struct {
+	Type string                  `json:"type"`
+	Name WorkspaceSearchSortName `json:"name"`
+}
+
+// WorkspaceSearchFilter represents the filter options for workspace search
+type WorkspaceSearchFilter struct {
+	Type          string `json:"type"`
+	Mode          string `json:"mode"`
+	Text          string `json:"text"`
+	CaseSensitive bool   `json:"caseSensitive"`
+}
+
+// WorkspaceSearchQuery represents the query parameters for workspace search
+type WorkspaceSearchQuery struct {
+	Sort     WorkspaceSearchSort    `json:"sort"`
+	Archived bool                   `json:"archived"`
+	Filter   *WorkspaceSearchFilter `json:"filter,omitempty"`
+}
+
+// --- End Workspace Search Query Structs ---
 
 type Workspace struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Alias       string `json:"alias"`
 	Description struct {
-		Blocks []interface{} `json:"blocks"`
+		Blocks []interface{} `json:"blocks"` // Consider json.RawMessage if just passing through
 	} `json:"description"`
 	ItemType      string `json:"itemType"`
 	ItemColor     string `json:"itemColor"`
@@ -88,45 +91,34 @@ type WorkspaceResult struct {
 
 // GetWorkspaceIDByName searches for a workspace by name and returns its ID and alias
 func (c *Client) GetWorkspaceIDByName(ctx context.Context, name string) (WorkspaceResult, error) {
+	// Trim quotes if the input name is expected to be quoted.
+	// Consider if the caller should provide a clean name instead.
 	name = strings.Trim(name, "\"")
+
 	query := WorkspaceSearchQuery{
-		Sort: struct {
-			Type string `json:"type"`
-			Name struct {
-				Direction string `json:"direction"`
-			} `json:"name"`
-		}{
+		Sort: WorkspaceSearchSort{
 			Type: "name",
-			Name: struct {
-				Direction string `json:"direction"`
-			}{
+			Name: WorkspaceSearchSortName{
 				Direction: "asc",
 			},
 		},
 		Archived: false,
-	}
-
-	// Add filter for name search
-	query.Filter = &struct {
-		Type          string `json:"type"`
-		Mode          string `json:"mode"`
-		Text          string `json:"text"`
-		CaseSensitive bool   `json:"caseSensitive"`
-	}{
-		Type:          "name",
-		Mode:          "contain",
-		Text:          name,
-		CaseSensitive: false,
+		Filter: &WorkspaceSearchFilter{
+			Type:          "name",
+			Mode:          "contain",
+			Text:          name,
+			CaseSensitive: false,
+		},
 	}
 
 	jsonData, err := json.Marshal(query)
 	if err != nil {
-		return WorkspaceResult{}, fmt.Errorf("failed to marshal query: %w", err)
+		return WorkspaceResult{}, fmt.Errorf("failed to marshal workspace search query: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", baseURL+"/workspaces/search", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return WorkspaceResult{}, fmt.Errorf("failed to create request: %w", err)
+		return WorkspaceResult{}, fmt.Errorf("failed to create workspace search request: %w", err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
@@ -134,18 +126,18 @@ func (c *Client) GetWorkspaceIDByName(ctx context.Context, name string) (Workspa
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return WorkspaceResult{}, fmt.Errorf("failed to send request: %w", err)
+		return WorkspaceResult{}, fmt.Errorf("failed to send workspace search request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return WorkspaceResult{}, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+		return WorkspaceResult{}, fmt.Errorf("airfocus API workspace search failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var result WorkspaceResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return WorkspaceResult{}, fmt.Errorf("failed to decode response: %w", err)
+		return WorkspaceResult{}, fmt.Errorf("failed to decode workspace search response: %w", err)
 	}
 
 	if len(result.Items) == 0 {
@@ -159,6 +151,7 @@ func (c *Client) GetWorkspaceIDByName(ctx context.Context, name string) (Workspa
 	}, nil
 }
 
+// FieldSearchQuery (original, not used in ListFields, but kept for consistency if it's used elsewhere)
 type FieldSearchQuery struct {
 	Filter struct {
 		Type string `json:"type"`
@@ -175,6 +168,28 @@ type FieldSearchQuery struct {
 		} `json:"name"`
 	} `json:"sort"`
 }
+
+// --- Field List Query Structs ---
+
+type FieldListQueryFilter struct {
+	TeamFields bool `json:"teamFields"`
+}
+
+type FieldListQueryEmbed struct {
+	Workspaces bool `json:"workspaces"`
+}
+
+type FieldListQueryInclude struct {
+	Workspaces bool `json:"workspaces"`
+}
+
+type FieldListQuery struct {
+	Filter  FieldListQueryFilter  `json:"filter"`
+	Embed   FieldListQueryEmbed   `json:"embed"`
+	Include FieldListQueryInclude `json:"include"`
+}
+
+// --- End Field List Query Structs ---
 
 // Field represents a field in Airfocus
 type Field struct {
@@ -215,25 +230,25 @@ type FieldSearchResponse struct {
 func (c *Client) GetWorkspaceByID(ctx context.Context, workspaceID string) (Workspace, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/workspaces/%s", baseURL, workspaceID), nil)
 	if err != nil {
-		return Workspace{}, fmt.Errorf("failed to create request: %w", err)
+		return Workspace{}, fmt.Errorf("failed to create get workspace by ID request: %w", err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return Workspace{}, fmt.Errorf("failed to send request: %w", err)
+		return Workspace{}, fmt.Errorf("failed to send get workspace by ID request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return Workspace{}, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+		return Workspace{}, fmt.Errorf("airfocus API get workspace by ID failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var workspace Workspace
 	if err := json.NewDecoder(resp.Body).Decode(&workspace); err != nil {
-		return Workspace{}, fmt.Errorf("failed to decode response: %w", err)
+		return Workspace{}, fmt.Errorf("failed to decode get workspace by ID response: %w", err)
 	}
 
 	return workspace, nil
@@ -250,7 +265,7 @@ func (c *Client) ListFields(ctx context.Context) ([]FieldWithWorkspaceNames, err
 	// First, get all workspaces to build a lookup map
 	workspaces, err := c.ListWorkspaces(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list workspaces: %w", err)
+		return nil, fmt.Errorf("failed to list workspaces for field lookup: %w", err)
 	}
 
 	// Create a map of workspace IDs to names for quick lookup
@@ -259,43 +274,18 @@ func (c *Client) ListFields(ctx context.Context) ([]FieldWithWorkspaceNames, err
 		workspaceMap[ws.ID] = ws.Name
 	}
 
+	// Use the newly defined named structs for the query
 	query := struct {
-		Query struct {
-			Filter struct {
-				TeamFields bool `json:"teamFields"`
-			} `json:"filter"`
-			Embed struct {
-				Workspaces bool `json:"workspaces"`
-			} `json:"embed"`
-			Include struct {
-				Workspaces bool `json:"workspaces"`
-			} `json:"include"`
-		} `json:"query"`
+		Query FieldListQuery `json:"query"`
 	}{
-		Query: struct {
-			Filter struct {
-				TeamFields bool `json:"teamFields"`
-			} `json:"filter"`
-			Embed struct {
-				Workspaces bool `json:"workspaces"`
-			} `json:"embed"`
-			Include struct {
-				Workspaces bool `json:"workspaces"`
-			} `json:"include"`
-		}{
-			Filter: struct {
-				TeamFields bool `json:"teamFields"`
-			}{
+		Query: FieldListQuery{
+			Filter: FieldListQueryFilter{
 				TeamFields: true,
 			},
-			Embed: struct {
-				Workspaces bool `json:"workspaces"`
-			}{
+			Embed: FieldListQueryEmbed{
 				Workspaces: true,
 			},
-			Include: struct {
-				Workspaces bool `json:"workspaces"`
-			}{
+			Include: FieldListQueryInclude{
 				Workspaces: true,
 			},
 		},
@@ -322,7 +312,7 @@ func (c *Client) ListFields(ctx context.Context) ([]FieldWithWorkspaceNames, err
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("field search request failed with status: %d, body: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("airfocus API field search request failed with status: %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	var searchResp FieldSearchResponse
@@ -365,31 +355,24 @@ func (c *Client) ListFields(ctx context.Context) ([]FieldWithWorkspaceNames, err
 // ListWorkspaces returns a list of all workspaces accessible to the API key
 func (c *Client) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
 	query := WorkspaceSearchQuery{
-		Sort: struct {
-			Type string `json:"type"`
-			Name struct {
-				Direction string `json:"direction"`
-			} `json:"name"`
-		}{
+		Sort: WorkspaceSearchSort{
 			Type: "name",
-			Name: struct {
-				Direction string `json:"direction"`
-			}{
+			Name: WorkspaceSearchSortName{
 				Direction: "asc",
 			},
 		},
 		Archived: false,
-		Filter:   nil,
+		Filter:   nil, // No filter for listing all
 	}
 
 	reqBody, err := json.Marshal(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal query: %v", err)
+		return nil, fmt.Errorf("failed to marshal list workspaces query: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", baseURL+"/workspaces/search", bytes.NewBuffer(reqBody))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %v", err)
+		return nil, fmt.Errorf("failed to create list workspaces request: %w", err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
@@ -397,18 +380,18 @@ func (c *Client) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %v", err)
+		return nil, fmt.Errorf("failed to send list workspaces request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("airfocus API list workspaces failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var result WorkspaceResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %v", err)
+		return nil, fmt.Errorf("failed to decode list workspaces response: %w", err)
 	}
 
 	return result.Items, nil
