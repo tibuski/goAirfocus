@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"net/http"
 	"strings"
 
 	"github.com/tibus/goAirfocus/airfocus"
+	"net/http"
 )
 
 //go:embed templates/*
@@ -91,6 +91,53 @@ func (s *Server) handleGetWorkspaceID(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error encoding response: %v", err)
 		// Note: Can't send http.Error after writing to header/body,
 		// but logging is still important.
+	}
+}
+
+// WorkspaceUsersResponse defines the structure for the API response for workspace users
+type WorkspaceUsersResponse struct {
+	Status string                `json:"status"`
+	Data   []airfocus.WorkspaceUser `json:"data,omitempty"`
+	Error  string                `json:"error,omitempty"`
+}
+
+// handleGetWorkspaceUsers retrieves and lists users for a specific workspace
+func (s *Server) handleGetWorkspaceUsers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		json.NewEncoder(w).Encode(WorkspaceUsersResponse{
+			Status: "error",
+			Error:  "Method not allowed",
+		})
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	workspaceID := r.FormValue("workspace_id")
+
+	if apiKey == "" || workspaceID == "" {
+		json.NewEncoder(w).Encode(WorkspaceUsersResponse{
+			Status: "error",
+			Error:  "API key and workspace ID are required",
+		})
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+	users, err := client.GetWorkspaceUsers(r.Context(), workspaceID)
+
+	response := WorkspaceUsersResponse{}
+	if err != nil {
+		response.Status = "error"
+		response.Error = err.Error()
+	} else {
+		response.Status = "success"
+		response.Data = users
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
 	}
 }
 
@@ -271,6 +318,7 @@ func main() {
 
 	// API endpoints
 	http.HandleFunc("/api/workspace/id", server.handleGetWorkspaceID)
+	http.HandleFunc("/api/workspace/users", server.handleGetWorkspaceUsers) // New endpoint for users
 	http.HandleFunc("/api/field/id", server.handleGetFieldID)
 
 	// Add new endpoint for listing all workspaces

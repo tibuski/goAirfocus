@@ -38,14 +38,14 @@
                 <div class="flex-1">
                     <select id="workspaceSelect" 
                             class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2 hidden"
-                            onchange="document.getElementById('workspaceName').value = '';">
+                            onchange="document.getElementById('workspaceName').value = ''; document.getElementById('currentWorkspaceId').value = '';">
                         <option value="">Select a workspace...</option>
                     </select>
                     <input type="text" 
                            id="workspaceName" 
                            placeholder="Or enter workspace name (spaces are allowed)" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           oninput="document.getElementById('workspaceSelect').value = '';">
+                           oninput="document.getElementById('workspaceSelect').value = ''; document.getElementById('currentWorkspaceId').value = '';">
                     <p class="mt-1 text-sm text-gray-500">Workspace names can contain spaces and will be matched partially</p>
                 </div>
                 <button id="getWorkspaceIDBtn" onclick="getWorkspaceID()" 
@@ -54,6 +54,20 @@
                 </button>
             </div>
             <div id="workspaceResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                <pre class="text-sm text-gray-700"></pre>
+            </div>
+            <input type="hidden" id="currentWorkspaceId">
+        </div>
+
+        <!-- Users Tool -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Get Workspace Users</h2>
+            <p class="mb-4 text-sm text-gray-500">First, use "Get Workspace ID" to select a workspace.</p>
+            <button id="getUsersBtn" onclick="getWorkspaceUsers()" 
+                    class="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                Get Users for Selected Workspace
+            </button>
+            <div id="usersResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
                 <pre class="text-sm text-gray-700"></pre>
             </div>
         </div>
@@ -168,7 +182,7 @@
                     if (data.data && data.data.length > 0) {
                         data.data.forEach(workspace => {
                             const option = document.createElement('option');
-                            option.value = workspace.name;
+                            option.value = workspace.id; // Store ID as value
                             option.textContent = workspace.alias ? 
                                 `${workspace.name} (${workspace.alias})` : 
                                 workspace.name;
@@ -199,13 +213,18 @@
 
             const select = document.getElementById('workspaceSelect');
             const workspaceNameInput = document.getElementById('workspaceName');
-            const workspaceName = select.value || workspaceNameInput.value.trim();
-            
-            if (!workspaceName) {
+            let workspaceIdentifier; // This could be name or ID
+
+            if (select.value) { // If a workspace is selected from the dropdown
+                workspaceIdentifier = select.options[select.selectedIndex].textContent.split(' (')[0]; // Get the name part
+            } else if (workspaceNameInput.value.trim()) { // If text is entered
+                workspaceIdentifier = workspaceNameInput.value.trim();
+            } else {
                 displayMessage('Please select a workspace or enter a workspace name', 'error');
                 return;
             }
-            if (workspaceName.length < 2) {
+            
+            if (workspaceIdentifier.length < 2) {
                 displayMessage('Workspace name must be at least 2 characters long', 'error');
                 return;
             }
@@ -223,7 +242,7 @@
                     },
                     body: new URLSearchParams({
                         api_key: apiKey,
-                        workspace_name: workspaceName
+                        workspace_name: workspaceIdentifier // Always send name for this endpoint
                     })
                 });
 
@@ -231,21 +250,87 @@
                 resultPre.textContent = JSON.stringify(data, null, 2);
                 
                 if (data.status === 'success') {
+                    document.getElementById('currentWorkspaceId').value = data.id; // Store the retrieved ID
                     resultDiv.classList.remove('bg-red-50');
                     resultDiv.classList.add('bg-green-50');
                     displayMessage('Workspace ID retrieved successfully.', 'success');
                 } else {
+                    document.getElementById('currentWorkspaceId').value = ''; // Clear stored ID on error
                     resultDiv.classList.remove('bg-green-50');
                     resultDiv.classList.add('bg-red-50');
                     displayMessage('Failed to get Workspace ID: ' + data.error, 'error');
                 }
             } catch (error) {
+                document.getElementById('currentWorkspaceId').value = ''; // Clear stored ID on error
                 resultPre.textContent = `Error: ${error.message}`;
                 resultDiv.classList.remove('bg-green-50');
                 resultDiv.classList.add('bg-red-50');
                 displayMessage('Error fetching Workspace ID: ' + error.message, 'error');
             } finally {
                 setButtonState('getWorkspaceIDBtn', false);
+            }
+        }
+
+        // --- Users Functions ---
+        async function getWorkspaceUsers() {
+            const apiKey = document.getElementById('apiKey').value;
+            const workspaceId = document.getElementById('currentWorkspaceId').value; // Get the ID from the hidden input
+
+            if (!apiKey) {
+                displayMessage('Please enter your API key', 'error');
+                return;
+            }
+            if (!workspaceId) {
+                displayMessage('Please first get a Workspace ID using the tool above.', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('usersResult');
+            const resultPre = resultDiv.querySelector('pre');
+            resultDiv.classList.remove('hidden');
+            setButtonState('getUsersBtn', true);
+
+            try {
+                const response = await fetch('/api/workspace/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        api_key: apiKey,
+                        workspace_id: workspaceId
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    if (data.data && data.data.length > 0) {
+                        let userListHtml = '<ul class="list-disc pl-5">';
+                        data.data.forEach(user => {
+                            userListHtml += `<li><strong>${user.fullName}</strong> (${user.email}) - Permission: ${user.permission}</li>`;
+                        });
+                        userListHtml += '</ul>';
+                        resultPre.innerHTML = userListHtml;
+                        displayMessage('Users retrieved successfully.', 'success');
+                    } else {
+                        resultPre.textContent = 'No users found with explicit permissions for this workspace.';
+                        displayMessage('No users found.', 'info');
+                    }
+                    resultDiv.classList.remove('bg-red-50');
+                    resultDiv.classList.add('bg-green-50');
+                } else {
+                    resultPre.textContent = JSON.stringify(data, null, 2);
+                    resultDiv.classList.remove('bg-green-50');
+                    resultDiv.classList.add('bg-red-50');
+                    displayMessage('Failed to get users: ' + data.error, 'error');
+                }
+            } catch (error) {
+                resultPre.textContent = `Error: ${error.message}`;
+                resultDiv.classList.remove('bg-green-50');
+                resultDiv.classList.add('bg-red-50');
+                displayMessage('Error fetching users: ' + error.message, 'error');
+            } finally {
+                setButtonState('getUsersBtn', false);
             }
         }
 

@@ -76,6 +76,9 @@ type Workspace struct {
 	Namespace string `json:"namespace"`
 	Order     int    `json:"order"`
 	TeamID    string `json:"teamId"`
+	Embedded  struct { // Correctly define _embedded to capture permissions
+		Permissions map[string]string `json:"permissions"` // userId: Permission (string like "read", "write", "full", "comment")
+	} `json:"_embedded,omitempty"`
 }
 
 type WorkspaceResponse struct {
@@ -352,4 +355,94 @@ func (c *Client) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
 	}
 
 	return result.Items, nil
+}
+
+// User represents a team member from the /api/team/users endpoint
+type User struct {
+	UserID   string `json:"userId"`
+	FullName string `json:"fullName"`
+	Email    string `json:"email"`
+	Role     string `json:"role"` // e.g., "admin", "contributor", "editor"
+}
+
+// ListUsers retrieves all users in the team
+func (c *Client) ListUsers(ctx context.Context) ([]User, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", baseURL+"/team/users", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create list users request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send list users request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("airfocus API list users failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var users []User
+	if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
+		return nil, fmt.Errorf("failed to decode list users response: %w", err)
+	}
+	return users, nil
+}
+
+// WorkspaceUser combines user details with their specific permission for a workspace
+type WorkspaceUser struct {
+	UserID     string `json:"userId"`
+	FullName   string `json:"fullName"`
+	Email      string `json:"email"`
+	Permission string `json:"permission"` // "read", "write", "full", "comment"
+}
+
+// GetWorkspaceUsers retrieves users and their permissions for a specific workspace
+func (c *Client) GetWorkspaceUsers(ctx context.Context, workspaceID string) ([]WorkspaceUser, error) {
+	// Get workspace details to access embedded permissions
+	workspace, err := c.GetWorkspaceByID(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace details for users: %w", err)
+	}
+
+	if workspace.Embedded.Permissions == nil || len(workspace.Embedded.Permissions) == 0 {
+		return []WorkspaceUser{}, nil // No explicit permissions found
+	}
+
+	// Get all team users to map user IDs to names and emails
+	allUsers, err := c.ListUsers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all team users: %w", err)
+	}
+
+	userMap := make(map[string]User)
+	for _, u := range allUsers {
+		userMap[u.UserID] = u
+	}
+
+	var workspaceUsers []WorkspaceUser
+	for userID, permission := range workspace.Embedded.Permissions {
+		if user, ok := userMap[userID]; ok {
+			workspaceUsers = append(workspaceUsers, WorkspaceUser{
+				UserID:     userID,
+				FullName:   user.FullName,
+				Email:      user.Email,
+				Permission: permission,
+			})
+		} else {
+			// User not found in the team list, might be an external user or a deleted user.
+			// Or, the API might return default permissions for users not explicitly listed.
+			// For now, just add with ID and permission, indicating unknown name/email.
+			workspaceUsers = append(workspaceUsers, WorkspaceUser{
+				UserID:     userID,
+				FullName:   "Unknown User", // Fallback
+				Email:      "",
+				Permission: permission,
+			})
+		}
+	}
+
+	return workspaceUsers, nil
 }
