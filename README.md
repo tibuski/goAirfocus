@@ -1,11 +1,12 @@
 # Airfocus API Tools
 
-A simple web application that provides tools to interact with the Airfocus API, specifically designed to help users find workspace and field IDs easily.
+A simple web application that provides tools to interact with the Airfocus API, specifically designed to help users find workspace and field IDs, and manage workspace users easily.
 
 ## Features
 
 - 🔑 Secure API key management (client-side only)
 - 🔍 Workspace ID lookup by name or dropdown selection
+- 👥 **Workspace User Lookup**: Retrieve and list users with access to a selected workspace, including their roles/permissions.
 - 📋 Field ID lookup by name or dropdown selection
 - 🎯 Workspace alias display
 - 💻 Modern, responsive UI using Tailwind CSS
@@ -45,6 +46,7 @@ The server will start on `http://localhost:8080`
 2. Enter your Airfocus API key in the provided field
 3. Use the tools to:
    - Get workspace IDs by name or from a dropdown list
+   - Get users for a selected workspace (by ID or name)
    - Get field IDs by name or from a dropdown list
    - View workspace aliases alongside workspace names
    - See workspace names for non-team fields
@@ -57,10 +59,11 @@ The server will start on `http://localhost:8080`
 
 ## API Endpoints
 
-The application provides the following endpoints:
+The application provides the following backend endpoints:
 
 - `POST /api/workspaces` - List all available workspaces
 - `POST /api/workspace/id` - Get workspace ID by name
+- `POST /api/workspace/users` - Get users and their permissions for a specific workspace (by ID or name)
 - `POST /api/fields` - List all available fields
 - `POST /api/field/id` - Get field ID by name
 
@@ -118,4 +121,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [Airfocus API Documentation](https://developer.airfocus.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
-- [Go Programming Language](https://golang.org/) 
+- [Go Programming Language](https://golang.org/)
