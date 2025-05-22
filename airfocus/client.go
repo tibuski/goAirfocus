@@ -151,45 +151,12 @@ func (c *Client) GetWorkspaceIDByName(ctx context.Context, name string) (Workspa
 	}, nil
 }
 
-// FieldSearchQuery (original, not used in ListFields, but kept for consistency if it's used elsewhere)
+// FieldSearchQuery matches the OpenAPI definition for /api/fields/search
+// This replaces the old, unused FieldSearchQuery and the FieldListQuery related structs.
 type FieldSearchQuery struct {
-	Filter struct {
-		Type string `json:"type"`
-		Name struct {
-			Mode          string `json:"mode"`
-			Text          string `json:"text"`
-			CaseSensitive bool   `json:"caseSensitive"`
-		} `json:"name"`
-	} `json:"filter"`
-	Sort struct {
-		Type string `json:"type"`
-		Name struct {
-			Direction string `json:"direction"`
-		} `json:"name"`
-	} `json:"sort"`
+	IsTeamField  bool     `json:"isTeamField,omitempty"`
+	WorkspaceIDs []string `json:"workspaceIds,omitempty"`
 }
-
-// --- Field List Query Structs ---
-
-type FieldListQueryFilter struct {
-	TeamFields bool `json:"teamFields"`
-}
-
-type FieldListQueryEmbed struct {
-	Workspaces bool `json:"workspaces"`
-}
-
-type FieldListQueryInclude struct {
-	Workspaces bool `json:"workspaces"`
-}
-
-type FieldListQuery struct {
-	Filter  FieldListQueryFilter  `json:"filter"`
-	Embed   FieldListQueryEmbed   `json:"embed"`
-	Include FieldListQueryInclude `json:"include"`
-}
-
-// --- End Field List Query Structs ---
 
 // Field represents a field in Airfocus
 type Field struct {
@@ -205,7 +172,7 @@ type Field struct {
 			WorkspaceID string `json:"workspaceId"`
 			Order       int    `json:"order"`
 		} `json:"workspaces"`
-		AllWorkspaceIDs []string `json:"allWorkspaceIds"`
+		AllWorkspaceIDs []string `json:"allWorkspaceIds"` // This field is not in OpenAPI spec, but API might return it. Go will unmarshal if present.
 	} `json:"_embedded,omitempty"`
 }
 
@@ -274,21 +241,11 @@ func (c *Client) ListFields(ctx context.Context) ([]FieldWithWorkspaceNames, err
 		workspaceMap[ws.ID] = ws.Name
 	}
 
-	// Use the newly defined named structs for the query
-	query := struct {
-		Query FieldListQuery `json:"query"`
-	}{
-		Query: FieldListQuery{
-			Filter: FieldListQueryFilter{
-				TeamFields: true,
-			},
-			Embed: FieldListQueryEmbed{
-				Workspaces: true,
-			},
-			Include: FieldListQueryInclude{
-				Workspaces: true,
-			},
-		},
+	// Construct the query according to the OpenAPI spec for /api/fields/search
+	// The spec shows a flat structure for FieldSearchQuery, not nested 'query' or 'filter' objects.
+	query := FieldSearchQuery{
+		IsTeamField:  true, // Assuming we want team fields as per original logic
+		WorkspaceIDs: nil,  // No specific workspace IDs filter for listing all
 	}
 
 	queryJSON, err := json.Marshal(query)
