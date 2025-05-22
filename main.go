@@ -114,17 +114,41 @@ func (s *Server) handleGetWorkspaceUsers(w http.ResponseWriter, r *http.Request)
 	}
 
 	apiKey := r.FormValue("api_key")
-	workspaceID := r.FormValue("workspace_id")
+	workspaceID := r.FormValue("workspace_id")     // Can be empty
+	workspaceName := r.FormValue("workspace_name") // Can be empty
 
-	if apiKey == "" || workspaceID == "" {
+	if apiKey == "" {
 		json.NewEncoder(w).Encode(WorkspaceUsersResponse{
 			Status: "error",
-			Error:  "API key and workspace ID are required",
+			Error:  "API key is required",
 		})
 		return
 	}
 
 	client := airfocus.NewClient(apiKey)
+
+	// If workspaceID is not provided, try to resolve it from workspaceName
+	if workspaceID == "" && workspaceName != "" {
+		result, err := client.GetWorkspaceIDByName(r.Context(), workspaceName)
+		if err != nil {
+			json.NewEncoder(w).Encode(WorkspaceUsersResponse{
+				Status: "error",
+				Error:  fmt.Sprintf("Failed to resolve workspace ID from name '%s': %v", workspaceName, err),
+			})
+			return
+		}
+		workspaceID = result.ID
+	}
+
+	// If after all attempts, workspaceID is still empty, return an error
+	if workspaceID == "" {
+		json.NewEncoder(w).Encode(WorkspaceUsersResponse{
+			Status: "error",
+			Error:  "Workspace ID or name is required",
+		})
+		return
+	}
+
 	users, err := client.GetWorkspaceUsers(r.Context(), workspaceID)
 
 	response := WorkspaceUsersResponse{}
