@@ -58,7 +58,15 @@ The server will start on `http://localhost:8080`
    docker-compose up -d
    ```
 
-The application will be available at `http://localhost:8080`
+The application will be available at `http://localhost:8080` in development mode.
+
+For production deployment with Traefik:
+1. Ensure you have a Traefik network running:
+   ```bash
+   docker network create traefik_network
+   ```
+2. The application will be automatically configured to use Traefik as a reverse proxy with TLS support
+3. The service will be available at `https://airfocus.brichet.be`
 
 To update to the latest version:
 ```bash

@@ -1,0 +1,13 @@
+services:
+  airfocus-tools:
+    labels:
+      traefik.enable: true
+      traefik.http.routers.airfocus.entrypoints: websecure
+      traefik.http.routers.airfocus.tls: true
+      traefik.http.routers.airfocus.tls.certresolver: myresolver
+      traefik.http.routers.airfocus.rule: Host(`airfocus.brichet.be`)
+
+networks:
+  default:
+    name: traefik_network
+    external: true 
