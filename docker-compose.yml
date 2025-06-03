@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  airfocus-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      - TZ=UTC
+    volumes:
+      - ./templates:/app/templates
+      - ./static:/app/static 

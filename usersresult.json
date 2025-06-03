@@ -1,0 +1,1011 @@
+[
+  {
+    "userId": "b6966723-f514-4356-bcb4-983eca82889f",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Alexander von Selasinsky",
+    "role": "contributor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2024-12-13T12:36:41.006440Z",
+    "updatedAt": "2025-02-04T08:43:13.923426Z"
+  },
+  {
+    "userId": "5f01a375-4f21-47e7-9071-5b0a096ad39f",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Dubail Alexia",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T14:35:46.367093Z",
+    "createdAt": "2025-06-02T04:43:34.780376Z",
+    "updatedAt": "2025-06-02T13:35:18.332406Z"
+  },
+  {
+    "userId": "97109edf-a23c-47b2-9cf6-4a1e22ae998a",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Andreea Craciun",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T07:15:36.054743Z",
+    "createdAt": "2025-05-16T09:14:04.291821Z",
+    "updatedAt": "2025-05-30T07:41:57.639201Z"
+  },
+  {
+    "userId": "70caa163-a811-401d-899c-2f66036c1948",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Antoine Mathieu",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-04-25T07:44:33.458299Z",
+    "createdAt": "2025-04-17T13:43:33.464560Z",
+    "updatedAt": "2025-04-18T06:45:15.234426Z"
+  },
+  {
+    "userId": "a5511c9e-f6bc-4efb-bcbd-adcd65575d6e",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Lighthouse Monitoring",
+    "role": "contributor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T09:32:09.801149Z",
+    "createdAt": "2025-02-19T08:01:11.675791Z",
+    "updatedAt": "2025-02-19T08:18:14.297151Z"
+  },
+  {
+    "userId": "f48c4a52-a21d-421b-a1aa-12cfef589cde",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Waffenschmidt Armin (50HzT EE-M)",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T08:29:23.677270Z",
+    "createdAt": "2025-06-02T04:50:31.241680Z",
+    "updatedAt": "2025-06-02T06:39:32.612894Z"
+  },
+  {
+    "userId": "5ecac0ba-128d-4864-a68d-52f116a42e3d",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Arnaud Dierickx",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-05-28T09:04:38.080328Z",
+    "createdAt": "2025-04-25T12:39:04.457538Z",
+    "updatedAt": "2025-04-28T05:53:32.388086Z"
+  },
+  {
+    "userId": "e18d5060-3c9a-4fcf-9e72-55086a6a5c03",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Arnaud Ostrowski",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T07:54:29.856386Z",
+    "createdAt": "2024-12-13T12:38:44.246231Z",
+    "updatedAt": "2024-12-13T14:46:01.278776Z"
+  },
+  {
+    "userId": "8a454cce-c1a5-41e9-9928-876944d5ff4a",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Sukiasian Astkhik",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T11:13:42.841524Z",
+    "createdAt": "2025-06-02T04:50:30.966123Z",
+    "updatedAt": "2025-06-02T08:44:35.935288Z"
+  },
+  {
+    "userId": "5a61f22a-1c94-4a71-98bb-529af5ee3389",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Wuilmart Aurore",
+    "role": "contributor",
+    "state": {
+      "unseated": false,
+      "pending": true
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-06-02T04:50:30.938768Z",
+    "updatedAt": "2025-06-02T11:30:02.972268Z"
+  },
+  {
+    "userId": "3ec0353d-746f-4cd2-96d9-2d1e7e0ca44f",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Gidron Aviv",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T07:11:27.464732Z",
+    "createdAt": "2025-06-02T04:50:31.044794Z",
+    "updatedAt": "2025-06-02T07:11:27.189951Z"
+  },
+  {
+    "userId": "c28d9877-55bc-4840-b53c-62b0123dcff5",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Khumalo Bonginkosi",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-03-28T17:47:43.423283Z",
+    "createdAt": "2025-02-18T15:26:17.895656Z",
+    "updatedAt": "2025-02-18T16:35:49.559566Z"
+  },
+  {
+    "userId": "4822e35d-8580-4636-977d-59c25cf7a448",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Vidales Ferro Carlos",
+    "role": "contributor",
+    "state": {
+      "unseated": false,
+      "pending": true
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-06-02T04:50:31.257058Z",
+    "updatedAt": "2025-06-02T11:30:08.353994Z"
+  },
+  {
+    "userId": "9a9d3327-c195-4c3a-bb82-c1b07e280cb1",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Levecq Charles-Edouard",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T07:14:19.807636Z",
+    "createdAt": "2025-06-02T04:50:30.915909Z",
+    "updatedAt": "2025-06-02T07:00:07.481899Z"
+  },
+  {
+    "userId": "b7e5b006-18fb-4757-a76b-cdf61ef44834",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Schryvers Chris",
+    "role": "contributor",
+    "state": {
+      "unseated": false,
+      "pending": true
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-05-16T09:17:49.480598Z",
+    "updatedAt": "2025-06-02T11:30:10.526803Z"
+  },
+  {
+    "userId": "47c01a7c-ed05-49d9-b9a6-bf5b612bd4ae",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Clara Vandenhove",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-02-14T16:40:30.222543Z",
+    "createdAt": "2025-01-08T13:49:52.874111Z",
+    "updatedAt": "2025-01-08T16:55:48.605724Z"
+  },
+  {
+    "userId": "4f55a1c4-4a0b-4609-9ea1-0d34d969bd25",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Hoedenaeken Clement",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T09:06:27.833526Z",
+    "createdAt": "2025-06-02T04:50:31.145497Z",
+    "updatedAt": "2025-06-02T06:14:49.590096Z"
+  },
+  {
+    "userId": "4843236e-9b49-4e66-ba69-ca6c7c5e4393",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Hasar Didem (50HzT OC-E)",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": true
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-06-02T04:50:31.175755Z",
+    "updatedAt": "2025-06-02T04:50:31.175755Z"
+  },
+  {
+    "userId": "1fa9ce52-39f5-442f-a74d-52d4e1a2217e",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Dirk Marcelis",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-02-14T10:24:35.931061Z",
+    "createdAt": "2025-02-04T08:47:15.646243Z",
+    "updatedAt": "2025-02-14T09:25:26.864025Z"
+  },
+  {
+    "userId": "b8c992b0-0252-48d5-ba60-f2334525d17f",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Doucé Dries",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-05-16T09:43:52.571317Z",
+    "createdAt": "2025-05-16T09:17:49.497261Z",
+    "updatedAt": "2025-05-16T09:43:52.083074Z"
+  },
+  {
+    "userId": "0cda0488-04c9-49bb-99e3-4d1bd059b192",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Shehu Elira",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T18:20:07.082293Z",
+    "createdAt": "2025-06-02T04:50:31.224998Z",
+    "updatedAt": "2025-06-02T09:39:58.962912Z"
+  },
+  {
+    "userId": "295abc34-bd50-4c08-bad6-559d0ecefe1e",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Emilie Piret",
+    "role": "contributor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-02-04T08:52:54.335830Z",
+    "updatedAt": "2025-04-04T13:25:08.923522Z"
+  },
+  {
+    "userId": "63d3b031-4e04-404c-a6c6-35474978d1b5",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Gabriela Ripoll Graells",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T09:02:08.391699Z",
+    "createdAt": "2025-04-17T13:18:03.412778Z",
+    "updatedAt": "2025-04-17T13:18:48.631343Z"
+  },
+  {
+    "userId": "c34788d5-7559-4267-972d-e4f42e3d2a10",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Van Aken Geert",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T07:16:53.680074Z",
+    "createdAt": "2025-05-16T11:48:34.020755Z",
+    "updatedAt": "2025-05-19T14:04:37.432778Z"
+  },
+  {
+    "userId": "3254ab21-1cd5-4f49-8748-5d0a33bc53d3",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Geoffrey Bonte",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": true
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-05-13T13:16:50.298232Z",
+    "updatedAt": "2025-05-13T13:16:50.298232Z"
+  },
+  {
+    "userId": "20f43f2a-b1cb-4408-8881-fdf8e0ce1090",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Demurchyan Gevorg",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-05-21T15:55:22.528577Z",
+    "createdAt": "2025-05-16T09:17:49.408948Z",
+    "updatedAt": "2025-05-16T09:18:44.652954Z"
+  },
+  {
+    "userId": "b4432d0a-92ac-4963-9c7d-d7bed060d766",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Regnier Guillaume",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T09:44:00.573080Z",
+    "createdAt": "2025-06-02T04:50:31.017098Z",
+    "updatedAt": "2025-06-02T06:15:59.895622Z"
+  },
+  {
+    "userId": "ff11b62d-16c4-4b2d-bf70-3856f100667f",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Hannes Kukulenz",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-05-20T15:56:16.883747Z",
+    "createdAt": "2025-01-10T13:52:48.331411Z",
+    "updatedAt": "2025-01-10T13:54:13.063871Z"
+  },
+  {
+    "userId": "fc21ccfc-cff3-46dc-8612-9be3b665388c",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Ida Olsen",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-04-08T08:32:21.874693Z",
+    "createdAt": "2025-04-04T13:20:46.505032Z",
+    "updatedAt": "2025-04-04T14:46:09.984227Z"
+  },
+  {
+    "userId": "08f48b0a-32ad-4bc7-9c67-ad0925eb5a39",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Johan Maricq",
+    "role": "admin",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-05-28T23:30:25.614295Z",
+    "createdAt": "2024-12-13T12:36:12.920399Z",
+    "updatedAt": "2024-12-13T16:26:16.445462Z"
+  },
+  {
+    "userId": "2a63b0e7-3e12-4945-a8e1-f6569bdbcb73",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Juan Florez Velasquez",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-03-17T15:25:27.392101Z",
+    "createdAt": "2025-02-18T15:26:50.172630Z",
+    "updatedAt": "2025-03-13T08:27:59.188366Z"
+  },
+  {
+    "userId": "60609fb9-0c98-4a6c-80b8-7a4dbc01d15a",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Robaux Karl",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-05-19T09:55:05.230903Z",
+    "createdAt": "2025-05-16T09:17:49.568138Z",
+    "updatedAt": "2025-05-19T08:53:41.724602Z"
+  },
+  {
+    "userId": "1905323c-12bc-4bcf-b1fe-da3fd592db8e",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Kristoffer Mc Pherson",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-05-07T09:46:31.792710Z",
+    "createdAt": "2024-12-13T12:40:02.314200Z",
+    "updatedAt": "2025-01-29T14:26:52.966723Z"
+  },
+  {
+    "userId": "19089955-bb54-4e16-a0d8-95f564c2e1e7",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Laurent Brichet",
+    "role": "admin",
+    "avatarAttachmentId": "126b0479-bd04-42d0-bfe7-63d5571786a0",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T09:09:24.944375Z",
+    "createdAt": "2024-12-13T12:35:15.335676Z",
+    "updatedAt": "2025-01-06T14:48:34.406079Z"
+  },
+  {
+    "userId": "12a6b880-fdeb-4cca-a709-f6362fcb9e6e",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Luc Fourestier",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T08:56:35.366370Z",
+    "createdAt": "2024-12-20T09:57:51.224881Z",
+    "updatedAt": "2024-12-20T11:30:03.143782Z"
+  },
+  {
+    "userId": "80b29a73-38d9-4e46-b2e4-d21f21435d5d",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Lucille Heck",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-02-04T10:16:04.535229Z",
+    "createdAt": "2025-02-04T08:45:52.785345Z",
+    "updatedAt": "2025-02-04T10:16:04.114071Z"
+  },
+  {
+    "userId": "b191193f-2be6-4c11-9266-e26a5b722620",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Maarten Rits",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T10:11:53.112033Z",
+    "createdAt": "2025-01-06T15:34:02.354280Z",
+    "updatedAt": "2025-01-06T15:35:48.624277Z"
+  },
+  {
+    "userId": "4122ff70-2060-48dd-90af-1ab7b3be6a62",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Könning Magdalena",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": true
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-05-16T09:17:49.510701Z",
+    "updatedAt": "2025-05-16T09:17:49.510701Z"
+  },
+  {
+    "userId": "03ef7d38-10fd-4f90-90f5-90f7d881ab2a",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Thys Mathieu",
+    "role": "contributor",
+    "state": {
+      "unseated": false,
+      "pending": true
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-05-16T09:14:04.345749Z",
+    "updatedAt": "2025-06-02T11:30:05.982289Z"
+  },
+  {
+    "userId": "574a6d66-1d73-4163-bea5-48fc1e89aac1",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Lebrun Matthieu",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T15:40:41.011739Z",
+    "createdAt": "2025-06-02T04:50:31.209704Z",
+    "updatedAt": "2025-06-02T09:59:41.656459Z"
+  },
+  {
+    "userId": "ea7cecae-09e0-4590-b21a-f3e9f71138d0",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Van Aert Maxim",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T12:37:12.918712Z",
+    "createdAt": "2025-05-16T09:14:04.328308Z",
+    "updatedAt": "2025-05-19T06:49:59.486200Z"
+  },
+  {
+    "userId": "d47b8f0f-eba7-42ea-8328-2be66343ef5a",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Maximilian Ross",
+    "role": "contributor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2024-12-13T12:38:20.285605Z",
+    "updatedAt": "2025-02-14T16:04:41.465594Z"
+  },
+  {
+    "userId": "bdf0da3d-149d-40ff-a61e-cd54cb66979e",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Dugauthier Morgane",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T08:54:37.076971Z",
+    "createdAt": "2025-05-16T09:17:49.524093Z",
+    "updatedAt": "2025-05-16T13:16:48.499526Z"
+  },
+  {
+    "userId": "91b4bc22-9913-42ee-8130-76f9f34a1b0d",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Bragard Nicolas",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": true
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-06-02T04:50:31.101895Z",
+    "updatedAt": "2025-06-02T04:50:31.101895Z"
+  },
+  {
+    "userId": "44baa19b-68d9-4027-8855-670be72c1f96",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Oz Ural",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T09:23:52.002038Z",
+    "createdAt": "2024-12-13T12:35:44.000783Z",
+    "updatedAt": "2024-12-13T12:36:28.504486Z"
+  },
+  {
+    "userId": "7591b9ec-addf-4409-913e-877c9cd6c526",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Patrick Airfocus",
+    "role": "admin",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-03-20T17:06:06.630869Z",
+    "createdAt": "2025-03-20T14:41:19.698036Z",
+    "updatedAt": "2025-03-20T15:00:39.043463Z"
+  },
+  {
+    "userId": "e11c1218-4451-41dc-845d-7eb8306295b7",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Peter Bösenberg",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T11:38:58.454247Z",
+    "createdAt": "2025-05-16T09:27:20.860318Z",
+    "updatedAt": "2025-05-16T12:28:08.662418Z"
+  },
+  {
+    "userId": "b320970c-087b-4eaf-a5c4-932337b2d7c2",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Philipp Rammos",
+    "role": "contributor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2024-12-13T18:39:03.714104Z",
+    "createdAt": "2024-12-13T12:37:08.752505Z",
+    "updatedAt": "2025-02-04T08:45:10.270466Z"
+  },
+  {
+    "userId": "6573d018-b38b-4bc2-b82b-139941454c12",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Pieterjan Espeel",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T12:47:47.585770Z",
+    "createdAt": "2025-05-13T08:28:02.947661Z",
+    "updatedAt": "2025-05-26T13:46:20.216130Z"
+  },
+  {
+    "userId": "6a5a1f3e-02a4-4f67-96a2-0bbbf70974ac",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Lambert Quentin",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": true
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-05-16T09:17:49.465642Z",
+    "updatedAt": "2025-05-16T09:17:49.465642Z"
+  },
+  {
+    "userId": "4a1d406a-282e-429a-b8be-c0479b05e191",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Reinout De Winter",
+    "role": "admin",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-05-27T08:35:35.963173Z",
+    "createdAt": "2025-05-05T14:37:18.077415Z",
+    "updatedAt": "2025-05-05T14:38:23.232198Z"
+  },
+  {
+    "userId": "c2a23328-ff1e-4582-a390-b136afdb4c44",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Jane-Aluja Sebastien",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-03T08:52:12.533044Z",
+    "createdAt": "2025-06-02T04:50:31.062565Z",
+    "updatedAt": "2025-06-03T07:46:48.545363Z"
+  },
+  {
+    "userId": "38d9907f-c773-4310-bd9b-06a8201068e7",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Setareh Sadjadi",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-02-04T16:26:17.940188Z",
+    "createdAt": "2025-02-04T08:48:51.788546Z",
+    "updatedAt": "2025-02-04T10:47:02.847677Z"
+  },
+  {
+    "userId": "e2997257-3ab1-48d3-ab34-8c045db723f6",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Ketbi Si Mohamed",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": true
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": false,
+    "createdAt": "2025-06-02T04:50:31.082063Z",
+    "updatedAt": "2025-06-02T04:50:31.082063Z"
+  },
+  {
+    "userId": "c8d3bc41-4e87-46b0-a916-7fc8faefa671",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Soulaiman Ghanem",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T19:15:00.268989Z",
+    "createdAt": "2024-12-13T12:39:08.066303Z",
+    "updatedAt": "2025-02-18T16:24:22.109578Z"
+  },
+  {
+    "userId": "f6f995c7-0ca7-4dab-a274-e4304fd40892",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Reschwamm Stefan (50HzT OP-R)",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T14:33:38.654642Z",
+    "createdAt": "2025-06-02T04:50:31.195473Z",
+    "updatedAt": "2025-06-02T07:07:27.619971Z"
+  },
+  {
+    "userId": "7da5fccc-4c35-4863-8b49-2ae17a0968de",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Sven Dill",
+    "role": "contributor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-01-13T07:51:38.013585Z",
+    "createdAt": "2024-12-13T16:36:32.754728Z",
+    "updatedAt": "2025-02-04T08:45:30.297742Z"
+  },
+  {
+    "userId": "b83d55a0-7b60-4ceb-8e20-f85b203f64f7",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Thomas Rafflin",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-06-02T08:47:09.855248Z",
+    "createdAt": "2025-05-15T07:12:03.211803Z",
+    "updatedAt": "2025-05-15T07:13:24.595082Z"
+  },
+  {
+    "userId": "87fab70e-11a5-4148-bd50-02b1f6b3c84c",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Tony Aussems",
+    "role": "admin",
+    "avatarAttachmentId": "de242820-4415-49d1-8678-80d8840faef7",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-05-26T12:20:02.378519Z",
+    "createdAt": "2024-12-13T12:37:33.966734Z",
+    "updatedAt": "2025-01-06T13:57:41.635002Z"
+  },
+  {
+    "userId": "d58d4d22-328f-4659-97fe-4dd368e52011",
+    "teamId": "2a366d97-d220-452b-8263-444079734ee3",
+    "email": "",
+    "fullName": "Vincent Dubois",
+    "role": "editor",
+    "state": {
+      "unseated": false,
+      "pending": false
+    },
+    "isTeamCreator": false,
+    "disabled": false,
+    "emailVerified": true,
+    "lastSeenAt": "2025-05-05T08:07:17.498156Z",
+    "createdAt": "2024-12-13T12:37:58.202908Z",
+    "updatedAt": "2024-12-13T15:12:13.692321Z"
+  }
+]

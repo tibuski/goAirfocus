@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airfocus API Tools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">Airfocus API Tools</h1>
+        
+        <!-- Message Area -->
+        <div id="messageArea" class="mt-4 p-3 rounded-md text-sm hidden"></div>
+
+        <!-- API Key Form -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">API Key</h2>
+            <div class="flex gap-4">
+                <input type="password" 
+                       id="apiKey" 
+                       placeholder="Enter your Airfocus API key" 
+                       class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <p class="mt-2 text-sm text-gray-500">Your API key is saved locally in your browser's storage.</p>
+        </div>
+
+        <!-- Workspace Selection Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Select Workspace</h2>
+            <div class="flex flex-col md:flex-row gap-4 mb-4 items-end">
+                <div class="flex-1 w-full">
+                    <label for="workspaceSelect" class="block text-sm font-medium text-gray-700">Choose from list:</label>
+                    <select id="workspaceSelect" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onchange="document.getElementById('workspaceName').value = ''; document.getElementById('currentWorkspaceId').value = '';">
+                        <option value="">Select a workspace...</option>
+                    </select>
+                </div>
+                <button id="getWorkspacesBtn" onclick="getWorkspaces()" 
+                        class="w-full md:w-auto px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    Load Workspaces
+                </button>
+            </div>
+            <div class="mb-4">
+                <label for="workspaceName" class="block text-sm font-medium text-gray-700">Or enter workspace name:</label>
+                <input type="text" 
+                       id="workspaceName" 
+                       placeholder="Enter workspace name (e.g., 'My Product')" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       oninput="document.getElementById('workspaceSelect').value = ''; document.getElementById('currentWorkspaceId').value = '';">
+                <p class="mt-1 text-sm text-gray-500">Workspace names can contain spaces and will be matched partially.</p>
+            </div>
+            <input type="hidden" id="currentWorkspaceId">
+        </div>
+
+        <!-- Selected Workspace Actions Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Selected Workspace Actions</h2>
+            <p class="mb-4 text-sm text-gray-500">Use the "Select Workspace" section above to choose a workspace first.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Get Workspace ID Sub-section -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Retrieve Workspace ID</h3>
+                    <button id="getWorkspaceIDBtn" onclick="getWorkspaceID()" 
+                            class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        Get ID
+                    </button>
+                    <div id="workspaceResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                        <pre class="text-sm text-gray-700"></pre>
+                    </div>
+                </div>
+
+                <!-- Get Workspace Users Sub-section -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Retrieve Workspace Users</h3>
+                    <button id="getUsersBtn" onclick="getWorkspaceUsers()" 
+                            class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        Get Users
+                    </button>
+                    <div id="usersResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                        <pre class="text-sm text-gray-700"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Management Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">User Management</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- List Users with Roles -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">List Users with Roles</h3>
+                    <button id="getUsersWithRolesBtn" onclick="getUsersWithRoles()" 
+                            class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                        Get Users
+                    </button>
+                    <div id="usersWithRolesResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                        <div class="mb-4">
+                            <select id="userSelect" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Select a user to view their workspaces...</option>
+                            </select>
+                        </div>
+                        <button id="getUserWorkspacesBtn" onclick="getUserWorkspaces()" 
+                                class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4">
+                            Get User's Workspaces
+                        </button>
+                        <pre class="text-sm text-gray-700"></pre>
+                    </div>
+                </div>
+
+                <!-- User Workspaces -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">User's Workspace Access</h3>
+                    <div id="userWorkspacesResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                        <pre class="text-sm text-gray-700"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Field ID Tool -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Get Field ID</h2>
+            <div class="flex gap-4 mb-4">
+                <button id="getFieldsBtn" onclick="getFields()" 
+                        class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    Get Fields
+                </button>
+            </div>
+            <div class="flex gap-4 mb-4">
+                <div class="flex-1">
+                    <select id="fieldSelect" 
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                            onchange="document.getElementById('fieldName').value = '';">
+                        <option value="">Select a field...</option>
+                    </select>
+                    <input type="text" 
+                           id="fieldName" 
+                           placeholder="Or enter field name (spaces are allowed)" 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           oninput="document.getElementById('fieldSelect').value = '';">
+                    <p class="mt-1 text-sm text-gray-500">Field names can contain spaces and will be matched partially</p>
+                </div>
+                <button id="getFieldIDBtn" onclick="getFieldID()" 
+                        class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                    Get ID
+                </button>
+            </div>
+            <div id="fieldResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                <pre class="text-sm text-gray-700"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Utility Functions ---
+
+        function displayMessage(message, type = 'info') {
+            const messageArea = document.getElementById('messageArea');
+            messageArea.textContent = message;
+            messageArea.classList.remove('hidden', 'bg-red-100', 'text-red-800', 'bg-green-100', 'text-green-800', 'bg-blue-100', 'text-blue-800');
+            if (type === 'error') {
+                messageArea.classList.add('bg-red-100', 'text-red-800');
+            } else if (type === 'success') {
+                messageArea.classList.add('bg-green-100', 'text-green-800');
+            } else { // info
+                messageArea.classList.add('bg-blue-100', 'text-blue-800');
+            }
+            // Optionally hide after some time
+            setTimeout(() => {
+                messageArea.classList.add('hidden');
+            }, 5000);
+        }
+
+        function setButtonState(buttonId, disabled) {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                button.disabled = disabled;
+                if (disabled) {
+                    button.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    button.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+        }
+
+        // --- API Key Handling ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const storedApiKey = localStorage.getItem('airfocus_api_key');
+            if (storedApiKey) {
+                document.getElementById('apiKey').value = storedApiKey;
+            }
+        });
+
+        document.getElementById('apiKey').addEventListener('input', (event) => {
+            localStorage.setItem('airfocus_api_key', event.target.value);
+        });
+
+        // --- Workspace Functions ---
+
+        async function getWorkspaces() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                displayMessage('Please enter your API key', 'error');
+                return;
+            }
+
+            const select = document.getElementById('workspaceSelect');
+            select.innerHTML = '<option value="">Loading workspaces...</option>';
+            setButtonState('getWorkspacesBtn', true);
+
+            try {
+                const response = await fetch('/api/workspaces', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        api_key: apiKey
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    select.innerHTML = '<option value="">Select a workspace...</option>';
+                    if (data.data && data.data.length > 0) {
+                        data.data.forEach(workspace => {
+                            const option = document.createElement('option');
+                            option.value = workspace.id; // Store ID as value
+                            option.textContent = workspace.alias ? 
+                                `${workspace.name} (${workspace.alias})` : 
+                                workspace.name;
+                            select.appendChild(option);
+                        });
+                        displayMessage('Workspaces loaded successfully.', 'success');
+                    } else {
+                        displayMessage('No workspaces found for this API key.', 'info');
+                    }
+                } else {
+                    select.innerHTML = '<option value="">Error loading workspaces</option>';
+                    displayMessage('Failed to load workspaces: ' + data.error, 'error');
+                }
+            } catch (error) {
+                select.innerHTML = '<option value="">Error loading workspaces</option>';
+                displayMessage('Error fetching workspaces: ' + error.message, 'error');
+            } finally {
+                setButtonState('getWorkspacesBtn', false);
+            }
+        }
+
+        async function getWorkspaceID() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                displayMessage('Please enter your API key', 'error');
+                return;
+            }
+
+            const select = document.getElementById('workspaceSelect');
+            const workspaceNameInput = document.getElementById('workspaceName');
+            let workspaceIdentifier; // This could be name or ID
+
+            if (select.value) { // If a workspace is selected from the dropdown
+                // Use the text content (name) for the backend endpoint that expects name
+                workspaceIdentifier = select.options[select.selectedIndex].textContent.split(' (')[0]; 
+            } else if (workspaceNameInput.value.trim()) { // If text is entered
+                workspaceIdentifier = workspaceNameInput.value.trim();
+            } else {
+                displayMessage('Please select a workspace or enter a workspace name', 'error');
+                return;
+            }
+            
+            if (workspaceIdentifier.length < 2) {
+                displayMessage('Workspace name must be at least 2 characters long', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('workspaceResult');
+            const resultPre = resultDiv.querySelector('pre');
+            resultDiv.classList.remove('hidden');
+            setButtonState('getWorkspaceIDBtn', true);
+
+            try {
+                const response = await fetch('/api/workspace/id', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        api_key: apiKey,
+                        workspace_name: workspaceIdentifier // Always send name for this endpoint
+                    })
+                });
+
+                const data = await response.json();
+                resultPre.textContent = JSON.stringify(data, null, 2);
+                
+                if (data.status === 'success') {
+                    document.getElementById('currentWorkspaceId').value = data.id; // Store the retrieved ID
+                    resultDiv.classList.remove('bg-red-50');
+                    resultDiv.classList.add('bg-green-50');
+                    displayMessage('Workspace ID retrieved successfully.', 'success');
+                } else {
+                    document.getElementById('currentWorkspaceId').value = ''; // Clear stored ID on error
+                    resultDiv.classList.remove('bg-green-50');
+                    resultDiv.classList.add('bg-red-50');
+                    displayMessage('Failed to get Workspace ID: ' + data.error, 'error');
+                }
+            } catch (error) {
+                document.getElementById('currentWorkspaceId').value = ''; // Clear stored ID on error
+                resultPre.textContent = `Error: ${error.message}`;
+                resultDiv.classList.remove('bg-green-50');
+                resultDiv.classList.add('bg-red-50');
+                displayMessage('Error fetching Workspace ID: ' + error.message, 'error');
+            } finally {
+                setButtonState('getWorkspaceIDBtn', false);
+            }
+        }
+
+        // --- Users Functions ---
+        async function getWorkspaceUsers() {
+            const apiKey = document.getElementById('apiKey').value;
+            const workspaceSelect = document.getElementById('workspaceSelect');
+            const workspaceNameInput = document.getElementById('workspaceName');
+            const currentWorkspaceId = document.getElementById('currentWorkspaceId').value; // This is set by Get ID button
+
+            let params = new URLSearchParams();
+            params.append('api_key', apiKey);
+
+            if (!apiKey) {
+                displayMessage('Please enter your API key', 'error');
+                return;
+            }
+
+            // Determine which identifier to send to the backend
+            if (currentWorkspaceId) {
+                // If Get ID was pressed and successfully set the ID, use it directly
+                params.append('workspace_id', currentWorkspaceId);
+            } else if (workspaceSelect.value) {
+                // If a workspace is selected from the dropdown, use its ID
+                params.append('workspace_id', workspaceSelect.value);
+            } else if (workspaceNameInput.value.trim()) {
+                // If text is entered in the manual input, use the name
+                params.append('workspace_name', workspaceNameInput.value.trim());
+            } else {
+                displayMessage('Please select a workspace or enter a workspace name first.', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('usersResult');
+            const resultPre = resultDiv.querySelector('pre');
+            resultDiv.classList.remove('hidden');
+            setButtonState('getUsersBtn', true);
+
+            try {
+                const response = await fetch('/api/workspace/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: params
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    if (data.data && data.data.length > 0) {
+                        let userListHtml = '<ul class="list-disc pl-5">';
+                        data.data.forEach(user => {
+                            userListHtml += `<li><strong>${user.fullName}</strong> (${user.email}) - Permission: ${user.permission}</li>`;
+                        });
+                        userListHtml += '</ul>';
+                        resultPre.innerHTML = userListHtml;
+                        displayMessage('Users retrieved successfully.', 'success');
+                    } else {
+                        resultPre.textContent = 'No users found with explicit permissions for this workspace.';
+                        displayMessage('No users found.', 'info');
+                    }
+                    resultDiv.classList.remove('bg-red-50');
+                    resultDiv.classList.add('bg-green-50');
+                } else {
+                    resultPre.textContent = JSON.stringify(data, null, 2);
+                    resultDiv.classList.remove('bg-green-50');
+                    resultDiv.classList.add('bg-red-50');
+                    displayMessage('Failed to get users: ' + data.error, 'error');
+                }
+            } catch (error) {
+                resultPre.textContent = `Error: ${error.message}`;
+                resultDiv.classList.remove('bg-green-50');
+                resultDiv.classList.add('bg-red-50');
+                displayMessage('Error fetching users: ' + error.message, 'error');
+            } finally {
+                setButtonState('getUsersBtn', false);
+            }
+        }
+
+        // --- User Management Functions ---
+        async function getUsersWithRoles() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                displayMessage('Please enter your API key', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('usersWithRolesResult');
+            const resultPre = resultDiv.querySelector('pre');
+            const userSelect = document.getElementById('userSelect');
+            resultDiv.classList.remove('hidden');
+            setButtonState('getUsersWithRolesBtn', true);
+
+            try {
+                const response = await fetch('/api/users/roles', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        api_key: apiKey
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    if (data.data && data.data.length > 0) {
+                        // Clear and populate the user select dropdown
+                        userSelect.innerHTML = '<option value="">Select a user to view their workspaces...</option>';
+                        data.data.forEach(user => {
+                            const option = document.createElement('option');
+                            option.value = user.userId;
+                            option.textContent = `${user.fullName} (${user.role})`;
+                            userSelect.appendChild(option);
+                        });
+
+                        // Display the list of users
+                        let userListHtml = '<ul class="list-disc pl-5">';
+                        data.data.forEach(user => {
+                            // Use the actual data from the API response
+                            const fullName = user.fullName || 'Unknown Name';
+                            const role = user.role || 'No Role';
+                            const email = user.email || 'No Email';
+                            const state = user.state ? `(${user.state.pending ? 'Pending' : 'Active'})` : '';
+                            userListHtml += `<li><strong>${fullName}</strong> ${state} - Role: ${role}${email ? ` - ${email}` : ''}</li>`;
+                        });
+                        userListHtml += '</ul>';
+                        resultPre.innerHTML = userListHtml;
+                        displayMessage('Users retrieved successfully.', 'success');
+                        resultDiv.classList.remove('bg-red-50');
+                        resultDiv.classList.add('bg-green-50');
+                    } else {
+                        resultPre.textContent = 'No users found.';
+                        displayMessage('No users found.', 'info');
+                        resultDiv.classList.remove('bg-red-50');
+                        resultDiv.classList.add('bg-green-50');
+                    }
+                } else {
+                    resultPre.textContent = JSON.stringify(data, null, 2);
+                    resultDiv.classList.remove('bg-green-50');
+                    resultDiv.classList.add('bg-red-50');
+                    displayMessage('Failed to get users: ' + data.error, 'error');
+                }
+            } catch (error) {
+                resultPre.textContent = `Error: ${error.message}`;
+                resultDiv.classList.remove('bg-green-50');
+                resultDiv.classList.add('bg-red-50');
+                displayMessage('Error fetching users: ' + error.message, 'error');
+            } finally {
+                setButtonState('getUsersWithRolesBtn', false);
+            }
+        }
+
+        async function getUserWorkspaces() {
+            const apiKey = document.getElementById('apiKey').value;
+            const userSelect = document.getElementById('userSelect');
+            
+            if (!apiKey) {
+                displayMessage('Please enter your API key', 'error');
+                return;
+            }
+
+            if (!userSelect.value) {
+                displayMessage('Please select a user first', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('userWorkspacesResult');
+            const resultPre = resultDiv.querySelector('pre');
+            resultDiv.classList.remove('hidden');
+            setButtonState('getUserWorkspacesBtn', true);
+
+            try {
+                const response = await fetch('/api/user/workspaces', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        api_key: apiKey,
+                        user_id: userSelect.value
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    if (data.data && data.data.length > 0) {
+                        // Group workspaces by their group path
+                        const groupedWorkspaces = {};
+                        data.data.forEach(access => {
+                            const groupPath = access.groupPath || 'Ungrouped Workspaces';
+                            if (!groupedWorkspaces[groupPath]) {
+                                groupedWorkspaces[groupPath] = [];
+                            }
+                            groupedWorkspaces[groupPath].push(access);
+                        });
+
+                        // Sort group paths alphabetically
+                        const sortedGroupPaths = Object.keys(groupedWorkspaces).sort((a, b) => {
+                            if (a === 'Ungrouped Workspaces') return 1;
+                            if (b === 'Ungrouped Workspaces') return -1;
+                            return a.localeCompare(b);
+                        });
+
+                        let workspaceListHtml = '';
+                        sortedGroupPaths.forEach(groupPath => {
+                            const workspaces = groupedWorkspaces[groupPath];
+                            // Sort workspaces within each group by name
+                            workspaces.sort((a, b) => a.workspaceName.localeCompare(b.workspaceName));
+
+                            workspaceListHtml += `<div class="mb-4">`;
+                            workspaceListHtml += `<h4 class="font-semibold text-gray-700 mb-2">${groupPath}</h4>`;
+                            workspaceListHtml += `<ul class="list-disc pl-5 space-y-1">`;
+                            workspaces.forEach(access => {
+                                workspaceListHtml += `<li class="flex items-center gap-2">`;
+                                workspaceListHtml += `<span class="font-medium">${access.workspaceName}</span>`;
+                                workspaceListHtml += `<span class="text-sm px-2 py-0.5 rounded-full ${getPermissionColor(access.permission)}">${access.permission}</span>`;
+                                workspaceListHtml += `</li>`;
+                            });
+                            workspaceListHtml += `</ul></div>`;
+                        });
+
+                        resultPre.innerHTML = workspaceListHtml;
+                        displayMessage('User workspaces retrieved successfully.', 'success');
+                    } else {
+                        resultPre.textContent = 'No workspaces found for this user.';
+                        displayMessage('No workspaces found for this user.', 'info');
+                    }
+                    resultDiv.classList.remove('bg-red-50');
+                    resultDiv.classList.add('bg-green-50');
+                } else {
+                    resultPre.textContent = JSON.stringify(data, null, 2);
+                    resultDiv.classList.remove('bg-green-50');
+                    resultDiv.classList.add('bg-red-50');
+                    displayMessage('Failed to get user workspaces: ' + data.error, 'error');
+                }
+            } catch (error) {
+                resultPre.textContent = `Error: ${error.message}`;
+                resultDiv.classList.remove('bg-green-50');
+                resultDiv.classList.add('bg-red-50');
+                displayMessage('Error fetching user workspaces: ' + error.message, 'error');
+            } finally {
+                setButtonState('getUserWorkspacesBtn', false);
+            }
+        }
+
+        // Helper function to get color class based on permission level
+        function getPermissionColor(permission) {
+            switch (permission.toLowerCase()) {
+                case 'full':
+                    return 'bg-purple-100 text-purple-800';
+                case 'write':
+                    return 'bg-blue-100 text-blue-800';
+                case 'read':
+                    return 'bg-green-100 text-green-800';
+                case 'comment':
+                    return 'bg-yellow-100 text-yellow-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        // --- Field Functions ---
+
+        async function getFields() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                displayMessage('Please enter your API key', 'error');
+                return;
+            }
+
+            const select = document.getElementById('fieldSelect');
+            select.innerHTML = '<option value="">Loading fields...</option>';
+            setButtonState('getFieldsBtn', true);
+
+            try {
+                const response = await fetch('/api/fields', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        api_key: apiKey
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    // Filter out fields created on 2025-03-20 with empty updatedAt
+                    // This is a specific filter; remove if not generally needed.
+                    data.data = data.data.filter(field => {
+                        const shouldFilter = field.createdAt && 
+                            field.createdAt.startsWith('2025-03-20') && 
+                            (!field.updatedAt || field.updatedAt === '');
+                        return !shouldFilter;
+                    });
+
+                    select.innerHTML = '<option value="">Select a field...</option>';
+                    if (data.data && data.data.length > 0) {
+                        data.data.forEach(field => {
+                            const option = document.createElement('option');
+                            option.value = field.name;
+                            let displayText = field.name;
+                            
+                            if (field.isTeamField) {
+                                displayText += ' (Team Field)';
+                                if (field.workspaceNames && field.workspaceNames.length > 0) {
+                                    displayText += ` - Used in ${field.workspaceNames.length} workspaces`;
+                                }
+                            } else {
+                                // For non-team fields, show workspace names in parentheses
+                                if (field.workspaceNames && field.workspaceNames.length > 0) {
+                                    displayText += ` (${field.workspaceNames.join(', ')})`;
+                                }
+                            }
+                            
+                            option.textContent = displayText;
+                            select.appendChild(option);
+                        });
+                        displayMessage('Fields loaded successfully.', 'success');
+                    } else {
+                        displayMessage('No fields found for this API key.', 'info');
+                    }
+                } else {
+                    select.innerHTML = '<option value="">Error loading fields</option>';
+                    displayMessage('Failed to load fields: ' + data.error, 'error');
+                }
+            } catch (error) {
+                select.innerHTML = '<option value="">Error loading fields</option>';
+                displayMessage('Error fetching fields: ' + error.message, 'error');
+            } finally {
+                setButtonState('getFieldsBtn', false);
+            }
+        }
+
+        async function getFieldID() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                displayMessage('Please enter your API key', 'error');
+                return;
+            }
+
+            const select = document.getElementById('fieldSelect');
+            const fieldNameInput = document.getElementById('fieldName');
+            const fieldName = select.value || fieldNameInput.value.trim();
+            
+            if (!fieldName) {
+                displayMessage('Please select a field or enter a field name', 'error');
+                return;
+            }
+            if (fieldName.length < 2) {
+                displayMessage('Field name must be at least 2 characters long', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('fieldResult');
+            const resultPre = resultDiv.querySelector('pre');
+            resultDiv.classList.remove('hidden');
+            setButtonState('getFieldIDBtn', true);
+
+            try {
+                const response = await fetch('/api/field/id', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        api_key: apiKey,
+                        field_name: fieldName
+                    })
+                });
+
+                const data = await response.json();
+                let resultText = JSON.stringify(data, null, 2);
+                
+                if (data.status === 'success' && data.field && !data.field.isTeamField) {
+                    const field = data.field;
+                    if (field.workspaceNames && field.workspaceNames.length > 0) {
+                        resultText += '\n\nWorkspaces: ' + field.workspaceNames.join(', ');
+                    }
+                }
+                
+                resultPre.textContent = resultText;
+                
+                if (data.status === 'success') {
+                    resultDiv.classList.remove('bg-red-50');
+                    resultDiv.classList.add('bg-green-50');
+                    displayMessage('Field ID retrieved successfully.', 'success');
+                } else {
+                    resultDiv.classList.remove('bg-green-50');
+                    resultDiv.classList.add('bg-red-50');
+                    displayMessage('Failed to get Field ID: ' + data.error, 'error');
+                }
+            } catch (error) {
+                resultPre.textContent = `Error: ${error.message}`;
+                resultDiv.classList.remove('bg-green-50');
+                resultDiv.classList.add('bg-red-50');
+                displayMessage('Error fetching Field ID: ' + error.message, 'error');
+            } finally {
+                setButtonState('getFieldIDBtn', false);
+            }
+        }
+    </script>
+</body>
+</html>
