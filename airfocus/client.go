@@ -643,6 +643,38 @@ func (c *Client) GetUserWorkspaces(ctx context.Context, userID string) ([]UserWo
 	return userWorkspaces, nil
 }
 
+// WorkspaceUserStats represents the statistics of users in a workspace
+type WorkspaceUserStats struct {
+	TotalUsers   int `json:"totalUsers"`
+	TotalEditors int `json:"totalEditors"`
+	TotalAdmins  int `json:"totalAdmins"`
+}
+
+// GetWorkspaceUserStats retrieves user statistics for a specific workspace
+func (c *Client) GetWorkspaceUserStats(ctx context.Context, workspaceID string) (WorkspaceUserStats, error) {
+	users, err := c.GetWorkspaceUsers(ctx, workspaceID)
+	if err != nil {
+		return WorkspaceUserStats{}, fmt.Errorf("failed to get workspace users: %w", err)
+	}
+
+	stats := WorkspaceUserStats{
+		TotalUsers: len(users),
+	}
+
+	// Count editors and admins based on their permissions
+	for _, user := range users {
+		switch user.Permission {
+		case "write", "full":
+			stats.TotalEditors++
+			if user.Permission == "full" {
+				stats.TotalAdmins++
+			}
+		}
+	}
+
+	return stats, nil
+}
+
 // refreshCacheIfNeeded checks if the cache needs to be refreshed and updates it if necessary
 func (c *Client) refreshCacheIfNeeded(ctx context.Context) error {
 	c.cacheMutex.RLock()

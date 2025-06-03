@@ -97,12 +97,12 @@ func (s *Server) handleGetWorkspaceID(w http.ResponseWriter, r *http.Request) {
 
 // WorkspaceUsersResponse defines the structure for the API response for workspace users
 type WorkspaceUsersResponse struct {
-	Status string                   `json:"status"`
-	Data   []airfocus.WorkspaceUser `json:"data,omitempty"`
-	Error  string                   `json:"error,omitempty"`
+	Status string                      `json:"status"`
+	Data   airfocus.WorkspaceUserStats `json:"data,omitempty"`
+	Error  string                      `json:"error,omitempty"`
 }
 
-// handleGetWorkspaceUsers retrieves and lists users for a specific workspace
+// handleGetWorkspaceUsers retrieves user statistics for a specific workspace
 func (s *Server) handleGetWorkspaceUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -150,7 +150,7 @@ func (s *Server) handleGetWorkspaceUsers(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	users, err := client.GetWorkspaceUsers(r.Context(), workspaceID)
+	stats, err := client.GetWorkspaceUserStats(r.Context(), workspaceID)
 
 	response := WorkspaceUsersResponse{}
 	if err != nil {
@@ -158,7 +158,7 @@ func (s *Server) handleGetWorkspaceUsers(w http.ResponseWriter, r *http.Request)
 		response.Error = err.Error()
 	} else {
 		response.Status = "success"
-		response.Data = users
+		response.Data = stats
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -532,6 +532,77 @@ func handleGetTeamLicense(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// WorkspaceUserStatsResponse defines the structure for the API response for workspace user statistics
+type WorkspaceUserStatsResponse struct {
+	Status string                      `json:"status"`
+	Data   airfocus.WorkspaceUserStats `json:"data,omitempty"`
+	Error  string                      `json:"error,omitempty"`
+}
+
+// handleGetWorkspaceUserStats retrieves user statistics for a specific workspace
+func (s *Server) handleGetWorkspaceUserStats(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		json.NewEncoder(w).Encode(WorkspaceUserStatsResponse{
+			Status: "error",
+			Error:  "Method not allowed",
+		})
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	workspaceID := r.FormValue("workspace_id")     // Can be empty
+	workspaceName := r.FormValue("workspace_name") // Can be empty
+
+	if apiKey == "" {
+		json.NewEncoder(w).Encode(WorkspaceUserStatsResponse{
+			Status: "error",
+			Error:  "API key is required",
+		})
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+
+	// If workspaceID is not provided, try to resolve it from workspaceName
+	if workspaceID == "" && workspaceName != "" {
+		result, err := client.GetWorkspaceIDByName(r.Context(), workspaceName)
+		if err != nil {
+			json.NewEncoder(w).Encode(WorkspaceUserStatsResponse{
+				Status: "error",
+				Error:  fmt.Sprintf("Failed to resolve workspace ID from name '%s': %v", workspaceName, err),
+			})
+			return
+		}
+		workspaceID = result.ID
+	}
+
+	// If after all attempts, workspaceID is still empty, return an error
+	if workspaceID == "" {
+		json.NewEncoder(w).Encode(WorkspaceUserStatsResponse{
+			Status: "error",
+			Error:  "Workspace ID or name is required",
+		})
+		return
+	}
+
+	stats, err := client.GetWorkspaceUserStats(r.Context(), workspaceID)
+
+	response := WorkspaceUserStatsResponse{}
+	if err != nil {
+		response.Status = "error"
+		response.Error = err.Error()
+	} else {
+		response.Status = "success"
+		response.Data = stats
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
+}
+
 func main() {
 	server, err := NewServer()
 	if err != nil {
@@ -544,6 +615,7 @@ func main() {
 	// API endpoints
 	http.HandleFunc("/api/workspace/id", server.handleGetWorkspaceID)
 	http.HandleFunc("/api/workspace/users", server.handleGetWorkspaceUsers)
+	http.HandleFunc("/api/workspace/user-stats", server.handleGetWorkspaceUserStats) // New endpoint for user statistics
 	http.HandleFunc("/api/field/id", server.handleGetFieldID)
 	http.HandleFunc("/api/users/roles", server.handleGetUsersWithRoles)     // New endpoint for users with roles
 	http.HandleFunc("/api/user/workspaces", server.handleGetUserWorkspaces) // New endpoint for user workspaces

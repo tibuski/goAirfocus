@@ -5,8 +5,10 @@ A simple web application that provides tools to interact with the Airfocus API, 
 ## Features
 
 - 🔑 Secure API key management (client-side only)
+- 📊 **License Information**: View total, used, and free licenses with a modern card-based interface
+- 👥 **Role Statistics**: Get team-wide statistics for total users, admins, editors, and contributors
 - 🔍 Workspace ID lookup by name or dropdown selection
-- 👥 **Workspace User Lookup**: Retrieve and list users with access to a selected workspace, including their roles/permissions.
+- 👥 **Workspace User Statistics**: Get total counts of users, editors, and administrators for a selected workspace
 - 📋 Field ID lookup by name or dropdown selection
 - 🎯 Workspace alias display
 - 💻 Modern, responsive UI using Tailwind CSS
@@ -126,7 +128,7 @@ docker-compose down
 2. Enter your Airfocus API key in the provided field
 3. Use the tools to:
    - Get workspace IDs by name or from a dropdown list
-   - Get users for a selected workspace (by ID or name)
+   - Get user statistics for a selected workspace (total users, editors, and administrators)
    - Get field IDs by name or from a dropdown list
    - View workspace aliases alongside workspace names
    - See workspace names for non-team fields
@@ -141,9 +143,11 @@ docker-compose down
 
 The application provides the following backend endpoints:
 
+- `POST /api/team/license` - Get team license information
+- `POST /api/users/roles` - Get team-wide user role statistics
 - `POST /api/workspaces` - List all available workspaces
 - `POST /api/workspace/id` - Get workspace ID by name
-- `POST /api/workspace/users` - Get users and their permissions for a specific workspace (by ID or name)
+- `POST /api/workspace/users` - Get user statistics (total users, editors, administrators) for a specific workspace
 - `POST /api/workspace/hierarchy` - Get workspace hierarchy with group information and user permissions
 - `POST /api/fields` - List all available fields
 - `POST /api/field/id` - Get field ID by name
