@@ -432,6 +432,106 @@ func (s *Server) handleGetUserWorkspaces(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// TeamLicenseInfo represents the license information from the team endpoint
+type TeamLicenseInfo struct {
+	TeamID string `json:"teamId"`
+	Slug   string `json:"slug"`
+	Name   string `json:"name"`
+	State  struct {
+		Features []string `json:"features"`
+		Seats    struct {
+			Admin struct {
+				Total int `json:"total"`
+				Used  int `json:"used"`
+				Free  int `json:"free"`
+			} `json:"admin"`
+			Editor struct {
+				Total int `json:"total"`
+				Used  int `json:"used"`
+				Free  int `json:"free"`
+			} `json:"editor"`
+			Contributor struct {
+				Total int `json:"total"`
+				Used  int `json:"used"`
+				Free  int `json:"free"`
+			} `json:"contributor"`
+			Any struct {
+				Total int `json:"total"`
+				Used  int `json:"used"`
+				Free  int `json:"free"`
+			} `json:"any"`
+		} `json:"seats"`
+		Workspaces struct {
+			Total int `json:"total"`
+		} `json:"workspaces"`
+		Subscription struct {
+			Type string `json:"type"`
+		} `json:"subscription"`
+	} `json:"state"`
+	Flags struct {
+		EnableAi                  struct{ Value, Enforced, Explicit bool } `json:"enableAi"`
+		EnableOkrApp              struct{ Value, Enforced, Explicit bool } `json:"enableOkrApp"`
+		RemoveBranding            struct{ Value, Enforced, Explicit bool } `json:"removeBranding"`
+		ForbidShareLinkCreation   struct{ Value, Enforced, Explicit bool } `json:"forbidShareLinkCreation"`
+		RestrictShareLinkCreation struct{ Value, Enforced, Explicit bool } `json:"restrictShareLinkCreation"`
+		RequireShareLinkPassword  struct{ Value, Enforced, Explicit bool } `json:"requireShareLinkPassword"`
+		RequirePortalLogin        struct{ Value, Enforced, Explicit bool } `json:"requirePortalLogin"`
+		RequirePortalPassword     struct{ Value, Enforced, Explicit bool } `json:"requirePortalPassword"`
+	} `json:"flags"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+}
+
+func handleGetTeamLicense(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	if apiKey == "" {
+		http.Error(w, "API key is required", http.StatusBadRequest)
+		return
+	}
+
+	// Make request to Airfocus API
+	req, err := http.NewRequest("GET", "https://api.airfocus.com/api/team", nil)
+	if err != nil {
+		http.Error(w, "Error creating request", http.StatusInternalServerError)
+		return
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		http.Error(w, "Error making request to Airfocus API", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	var licenseInfo TeamLicenseInfo
+	if err := json.NewDecoder(resp.Body).Decode(&licenseInfo); err != nil {
+		http.Error(w, "Error decoding response", http.StatusInternalServerError)
+		return
+	}
+
+	// Set response headers and return the license info
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "success",
+		"data": map[string]interface{}{
+			"state": map[string]interface{}{
+				"seats": map[string]interface{}{
+					"any": licenseInfo.State.Seats.Any,
+				},
+			},
+		},
+	})
+}
+
 func main() {
 	server, err := NewServer()
 	if err != nil {
@@ -512,6 +612,9 @@ func main() {
 
 	// Add the new route for listing fields
 	http.HandleFunc("/api/fields", server.handleListFields)
+
+	// Add the new endpoint
+	http.HandleFunc("/api/team/license", handleGetTeamLicense)
 
 	// Web interface
 	http.HandleFunc("/", server.handleIndex)

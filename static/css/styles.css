@@ -1,0 +1,329 @@
+/* Custom styles to complement Tailwind CSS */
+
+/* Smooth transitions for interactive elements */
+button, 
+select, 
+input {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--light-gray);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--accent-light);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}
+
+/* Ensure pre elements don't overflow their containers */
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-width: 100%;
+}
+
+/* Improve table responsiveness */
+@media (max-width: 640px) {
+    .overflow-x-auto {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Ensure message area is always visible when shown */
+#messageArea {
+    position: sticky;
+    top: 1rem;
+    z-index: 50;
+}
+
+/* Base styles and variables */
+:root {
+    --accent: #FF6600;
+    --accent-hover: #E55C00;
+    --accent-light: #FF8533;
+    --accent-dark: #CC5200;
+    --accent-lighter: #FFB380;
+    --accent-darker: #993D00;
+    --white: #FFFFFF;
+    --light-gray: #F5F5F5;
+    --dark-gray: #333333;
+    --border: #E5E5E5;
+    --error: #FF3300;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--dark-gray);
+    background-color: var(--light-gray);
+    line-height: 1.6;
+}
+
+/* Button styles - ensuring only orange variants */
+button, 
+.btn,
+input[type="button"],
+input[type="submit"],
+a.btn {
+    background-color: var(--accent);
+    color: var(--white);
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    min-width: 100px;
+    min-height: 38px;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    position: relative;
+    top: 0;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Hover state */
+button:not([disabled]):hover, 
+.btn:not([disabled]):hover,
+input[type="button"]:not([disabled]):hover,
+input[type="submit"]:not([disabled]):hover,
+a.btn:not([disabled]):hover {
+    background-color: var(--accent-hover);
+    color: var(--white);
+    transform: translateY(-1px);
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Active state */
+button:not([disabled]):active, 
+.btn:not([disabled]):active,
+input[type="button"]:not([disabled]):active,
+input[type="submit"]:not([disabled]):active,
+a.btn:not([disabled]):active {
+    background-color: var(--accent-dark);
+    color: var(--white);
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Disabled state - maintain appearance but show disabled state */
+button[disabled], 
+.btn[disabled],
+input[type="button"][disabled],
+input[type="submit"][disabled],
+a.btn[disabled],
+button.opacity-50,
+.btn.opacity-50,
+input[type="button"].opacity-50,
+input[type="submit"].opacity-50,
+a.btn.opacity-50 {
+    background-color: var(--accent) !important;
+    color: var(--white) !important;
+    opacity: 0.7 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+}
+
+/* Remove any other button color classes */
+.btn-primary,
+.btn-secondary,
+.btn-success,
+.btn-info,
+.btn-warning,
+.btn-danger {
+    background-color: var(--accent) !important;
+    color: var(--white) !important;
+    min-width: 100px !important;
+    min-height: 38px !important;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-success:hover,
+.btn-info:hover,
+.btn-warning:hover,
+.btn-danger:hover {
+    background-color: var(--accent-hover) !important;
+    color: var(--white) !important;
+}
+
+/* Form elements */
+input, select {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.5rem;
+    transition: border-color 0.2s ease;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* Table styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    background-color: var(--white);
+}
+
+/* License table specific styles */
+.license-table {
+    margin-top: 2rem;
+    border: none;
+    box-shadow: none;
+}
+
+.license-table th {
+    background-color: var(--light-gray);
+    color: var(--dark-gray);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid var(--border);
+}
+
+.license-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.license-table tr:last-child td {
+    border-bottom: none;
+}
+
+.license-table .total,
+.license-table .used,
+.license-table .free {
+    color: var(--dark-gray);
+    font-weight: 500;
+}
+
+/* Message area */
+#messageArea {
+    position: sticky;
+    top: 1rem;
+    z-index: 100;
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: 4px;
+    background-color: var(--white);
+}
+
+.message-success {
+    background-color: var(--accent);
+    color: var(--white);
+}
+
+.message-error {
+    background-color: var(--error);
+    color: var(--white);
+}
+
+/* Card styles */
+.card {
+    background-color: var(--white);
+    border-radius: 4px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+
+/* Typography */
+h2, h3 {
+    color: var(--dark-gray);
+    margin: 1.5rem 0 1rem;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover {
+    color: var(--hover);
+    text-decoration: underline;
+}
+
+/* Form groups */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--dark-gray);
+    font-weight: 500;
+}
+
+/* Loading state */
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+    
+    .card {
+        padding: 1rem;
+    }
+    
+    button:not([disabled]), 
+    .btn:not([disabled]),
+    input[type="button"]:not([disabled]),
+    input[type="submit"]:not([disabled]),
+    a.btn:not([disabled]),
+    button[disabled], 
+    .btn[disabled],
+    input[type="button"][disabled],
+    input[type="submit"][disabled],
+    a.btn[disabled] {
+        width: 100%;
+        margin: 0.5rem 0;
+        min-width: unset;
+    }
+}
+
+/* Update utility classes to remove color variants */
+.text-accent { color: var(--accent); }
+.text-accent-hover { color: var(--accent-hover); }
+.text-accent-light { color: var(--accent-light); }
+.text-accent-dark { color: var(--accent-dark); }
+.text-accent-lighter { color: var(--accent-lighter); }
+.text-accent-darker { color: var(--accent-darker); }
+.text-error { color: var(--error); }
+
+.bg-accent { background-color: var(--accent); }
+.bg-accent-hover { background-color: var(--accent-hover); }
+.bg-accent-light { background-color: var(--accent-light); }
+.bg-accent-dark { background-color: var(--accent-dark); }
+.bg-accent-lighter { background-color: var(--accent-lighter); }
+.bg-accent-darker { background-color: var(--accent-darker); }
+.bg-light { background-color: var(--light-gray); }
+.bg-white { background-color: var(--white); } 
