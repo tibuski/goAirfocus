@@ -8,7 +8,7 @@ A simple web application that provides tools to interact with the Airfocus API, 
 - 📊 **License Information**: View total, used, and free licenses with a modern card-based interface
 - 👥 **Role Statistics**: Get team-wide statistics for total users, admins, editors, and contributors
 - 🔍 Workspace ID lookup by name or dropdown selection
-- 👥 **Workspace User Statistics**: Get total counts of users, editors, and administrators for a selected workspace
+- 👥 **Workspace Users**: Get total counts of users, editors, and administrators for a selected workspace
 - 📋 Field ID lookup by name or dropdown selection
 - 🎯 Workspace alias display
 - 💻 Modern, responsive UI using Tailwind CSS
