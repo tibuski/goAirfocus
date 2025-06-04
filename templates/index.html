@@ -125,10 +125,11 @@
                 <!-- Get Workspace Users Sub-section -->
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-3">Workspace User Statistics</h3>
-                    <button id="getUsersBtn" onclick="getWorkspaceUserStats()" 
-                            class="btn">
-                        Get User Stats
-                    </button>
+                    <div class="mt-4">
+                        <button id="getWorkspaceUsersBtn" onclick="getWorkspaceUsers()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            Get Users
+                        </button>
+                    </div>
                     <div id="usersResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
                         <div class="grid grid-cols-3 gap-4">
                             <div class="bg-white p-4 rounded-lg shadow text-center">
@@ -377,7 +378,7 @@
         }
 
         // --- Users Functions ---
-        async function getWorkspaceUserStats() {
+        async function getWorkspaceUsers() {
             const apiKey = document.getElementById('apiKey').value;
             const workspaceSelect = document.getElementById('workspaceSelect');
             const workspaceNameInput = document.getElementById('workspaceName');
@@ -405,7 +406,7 @@
 
             const resultDiv = document.getElementById('usersResult');
             resultDiv.classList.remove('hidden');
-            setButtonState('getUsersBtn', true);
+            setButtonState('getWorkspaceUsersBtn', true);
 
             try {
                 const response = await fetch('/api/workspace/users', {
@@ -443,7 +444,7 @@
                 resultDiv.classList.add('bg-red-50');
                 displayMessage('Error fetching user statistics: ' + error.message, 'error');
             } finally {
-                setButtonState('getUsersBtn', false);
+                setButtonState('getWorkspaceUsersBtn', false);
             }
         }
 
