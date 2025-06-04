@@ -124,14 +124,14 @@
 
                 <!-- Get Workspace Users Sub-section -->
                 <div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Workspace User Statistics</h3>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Workspace Users</h3>
                     <div class="mt-4">
                         <button id="getWorkspaceUsersBtn" onclick="getWorkspaceUsers()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
                             Get Users
                         </button>
                     </div>
                     <div id="usersResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
-                        <div class="grid grid-cols-3 gap-4">
+                        <div class="grid grid-cols-3 gap-4 mb-4">
                             <div class="bg-white p-4 rounded-lg shadow text-center">
                                 <div class="text-2xl font-bold text-blue-600" id="totalUsers">-</div>
                                 <div class="text-sm text-gray-600">Total Users</div>
@@ -144,6 +144,9 @@
                                 <div class="text-2xl font-bold text-purple-600" id="totalAdmins">-</div>
                                 <div class="text-sm text-gray-600">Administrators</div>
                             </div>
+                        </div>
+                        <div id="usersTreeView" class="mt-4 space-y-4">
+                            <!-- Tree view will be populated here -->
                         </div>
                     </div>
                 </div>
@@ -405,6 +408,7 @@
             }
 
             const resultDiv = document.getElementById('usersResult');
+            const treeViewDiv = document.getElementById('usersTreeView');
             resultDiv.classList.remove('hidden');
             setButtonState('getWorkspaceUsersBtn', true);
 
@@ -419,27 +423,75 @@
 
                 const data = await response.json();
                 if (data.status === 'success') {
-                    // Update only the statistics cards
+                    // Update statistics cards
                     document.getElementById('totalUsers').textContent = data.data.totalUsers || '0';
                     document.getElementById('totalEditors').textContent = data.data.totalEditors || '0';
                     document.getElementById('totalAdmins').textContent = data.data.totalAdmins || '0';
+
+                    // Group users by role
+                    const usersByRole = {
+                        'Administrator': [],
+                        'Editor': [],
+                        'Contributor': []
+                    };
+
+                    // Sort users into their respective role groups
+                    if (data.data.users && data.data.users.length > 0) {
+                        data.data.users.forEach(user => {
+                            const role = user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
+                            if (usersByRole[role]) {
+                                usersByRole[role].push(user);
+                            }
+                        });
+                    }
+
+                    // Generate tree view HTML
+                    let treeViewHtml = '';
+                    Object.entries(usersByRole).forEach(([role, users]) => {
+                        if (users.length > 0) {
+                            treeViewHtml += `
+                                <div class="bg-white rounded-lg shadow overflow-hidden">
+                                    <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                                        <h4 class="font-semibold text-gray-700">${role}s (${users.length})</h4>
+                                    </div>
+                                    <ul class="divide-y divide-gray-200">
+                                        ${users.sort((a, b) => a.fullName.localeCompare(b.fullName)).map(user => `
+                                            <li class="px-4 py-3 hover:bg-gray-50">
+                                                <div class="flex items-center justify-between">
+                                                    <div class="flex items-center">
+                                                        <span class="text-gray-900">${user.fullName}</span>
+                                                        ${user.email ? `<span class="ml-2 text-sm text-gray-500">(${user.email})</span>` : ''}
+                                                    </div>
+                                                    <span class="text-sm text-gray-500">${user.permission || 'No permission'}</span>
+                                                </div>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    treeViewDiv.innerHTML = treeViewHtml || '<p class="text-gray-500 text-center py-4">No users found in this workspace.</p>';
                     displayMessage('User statistics retrieved successfully.', 'success');
                     resultDiv.classList.remove('bg-red-50');
                     resultDiv.classList.add('bg-green-50');
                 } else {
-                    // Reset statistics cards on error
+                    // Reset statistics cards and tree view on error
                     document.getElementById('totalUsers').textContent = '-';
                     document.getElementById('totalEditors').textContent = '-';
                     document.getElementById('totalAdmins').textContent = '-';
+                    treeViewDiv.innerHTML = '';
                     resultDiv.classList.remove('bg-green-50');
                     resultDiv.classList.add('bg-red-50');
                     displayMessage('Failed to get user statistics: ' + data.error, 'error');
                 }
             } catch (error) {
-                // Reset statistics cards on error
+                // Reset statistics cards and tree view on error
                 document.getElementById('totalUsers').textContent = '-';
                 document.getElementById('totalEditors').textContent = '-';
                 document.getElementById('totalAdmins').textContent = '-';
+                treeViewDiv.innerHTML = '';
                 resultDiv.classList.remove('bg-green-50');
                 resultDiv.classList.add('bg-red-50');
                 displayMessage('Error fetching user statistics: ' + error.message, 'error');
