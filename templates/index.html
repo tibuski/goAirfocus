@@ -79,19 +79,19 @@
         <!-- Workspace Selection Section -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">Select Workspace</h2>
+            <button id="getWorkspacesBtn" onclick="getWorkspaces()" class="btn mt-2">
+                Load Workspaces
+            </button>
+            <br><br>
             <div class="flex flex-col md:flex-row gap-4 mb-4 items-end">
                 <div class="flex-1 w-full">
                     <label for="workspaceSelect" class="block text-sm font-medium text-gray-700">Choose from list:</label>
                     <select id="workspaceSelect" 
                             class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onchange="document.getElementById('workspaceName').value = ''; document.getElementById('currentWorkspaceId').value = '';">
+                            onchange="document.getElementById('workspaceName').value = ''; document.getElementById('currentWorkspaceId').value = ''; if (this.value) { getWorkspaceID(); getWorkspaceUsers(); }">
                         <option value="">Select a workspace...</option>
                     </select>
                 </div>
-                <button id="getWorkspacesBtn" onclick="getWorkspaces()" 
-                        class="btn">
-                    Load Workspaces
-                </button>
             </div>
             <div class="mb-4">
                 <label for="workspaceName" class="block text-sm font-medium text-gray-700">Or enter workspace name:</label>
@@ -101,22 +101,18 @@
                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                        oninput="document.getElementById('workspaceSelect').value = ''; document.getElementById('currentWorkspaceId').value = '';">
                 <p class="mt-1 text-sm text-gray-500">Workspace names can contain spaces and will be matched partially.</p>
-            </div>
-            <input type="hidden" id="currentWorkspaceId">
-        </div>
 
-        <!-- Selected Workspace Actions Section -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">Selected Workspace Actions</h2>
-            <p class="mb-4 text-sm text-gray-500">Use the "Select Workspace" section above to choose a workspace first.</p>
+            </div>
+
+            <input type="hidden" id="currentWorkspaceId">
+
+            <!-- Content moved from Selected Workspace Actions Section -->
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Workspace Actions</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Get Workspace ID Sub-section -->
                 <div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Retrieve Workspace ID</h3>
-                    <button id="getWorkspaceIDBtn" onclick="getWorkspaceID()" 
-                            class="btn">
-                        Get ID
-                    </button>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Workspace Id</h3>
+                    
                     <div id="workspaceResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
                         <pre class="text-sm text-gray-700"></pre>
                     </div>
@@ -125,26 +121,8 @@
                 <!-- Get Workspace Users Sub-section -->
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-3">Workspace Users</h3>
-                    <div class="mt-4">
-                        <button id="getWorkspaceUsersBtn" onclick="getWorkspaceUsers()" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            Get Users
-                        </button>
-                    </div>
+                    
                     <div id="usersResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
-                        <div class="grid grid-cols-3 gap-4 mb-4">
-                            <div class="bg-white p-4 rounded-lg shadow text-center">
-                                <div class="text-2xl font-bold text-blue-600" id="totalUsers">-</div>
-                                <div class="text-sm text-gray-600">Total Users</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-lg shadow text-center">
-                                <div class="text-2xl font-bold text-green-600" id="totalEditors">-</div>
-                                <div class="text-sm text-gray-600">Editors</div>
-                            </div>
-                            <div class="bg-white p-4 rounded-lg shadow text-center">
-                                <div class="text-2xl font-bold text-purple-600" id="totalAdmins">-</div>
-                                <div class="text-sm text-gray-600">Administrators</div>
-                            </div>
-                        </div>
                         <div id="usersTreeView" class="mt-4 space-y-4">
                             <!-- Tree view will be populated here -->
                         </div>
@@ -423,41 +401,52 @@
 
                 const data = await response.json();
                 if (data.status === 'success') {
-                    // Update statistics cards
-                    document.getElementById('totalUsers').textContent = data.data.totalUsers || '0';
-                    document.getElementById('totalEditors').textContent = data.data.totalEditors || '0';
-                    document.getElementById('totalAdmins').textContent = data.data.totalAdmins || '0';
+                    // Debug logging
+                    console.log('Received workspace users data:', data.data.users);
 
-                    // Group users by role
-                    const usersByRole = {
-                        'Administrator': [],
-                        'Editor': [],
-                        'Contributor': []
+                    // Group users by permission level
+                    const usersByPermission = {
+                        'full': [],
+                        'write': [],
+                        'comment': [],
+                        'read': []
                     };
 
-                    // Sort users into their respective role groups
+                    // Sort users into their respective permission groups
                     if (data.data.users && data.data.users.length > 0) {
                         data.data.users.forEach(user => {
-                            const role = user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase();
-                            if (usersByRole[role]) {
-                                usersByRole[role].push(user);
+                            // Debug logging for each user
+                            console.log('Processing user:', user.fullName, 'with permission:', user.permission);
+                            
+                            const permission = user.permission.toLowerCase();
+                            if (usersByPermission[permission]) {
+                                usersByPermission[permission].push(user);
+                            } else {
+                                console.log('Unknown permission level:', permission, 'for user:', user.fullName);
                             }
                         });
                     }
 
+                    // Debug logging for grouped users
+                    console.log('Grouped users by permission:', usersByPermission);
+
                     // Generate tree view HTML
                     let treeViewHtml = '';
-                    Object.entries(usersByRole).forEach(([role, users]) => {
-                        if (users.length > 0) {
+                    const permissionOrder = ['full', 'write', 'comment', 'read'];
+                    
+                    permissionOrder.forEach(permission => {
+                        const users = usersByPermission[permission];
+                        if (users && users.length > 0) {
+                            const permissionDisplay = permission.charAt(0).toUpperCase() + permission.slice(1);
+                            const displayPermissionName = (permission === 'read') ? 'Read-Only' : permissionDisplay;
                             treeViewHtml += `
                                 <div class="mb-4">
-                                    <h4 class="font-semibold text-gray-700 mb-2">${role}s (${users.length})</h4>
+                                    <h4 class="font-semibold text-gray-700 mb-2">${displayPermissionName} (${users.length})</h4>
                                     <ul class="list-disc pl-5 space-y-1">
                                         ${users.sort((a, b) => a.fullName.localeCompare(b.fullName)).map(user => `
                                             <li class="flex items-center gap-2">
                                                 <span class="font-medium">${user.fullName}</span>
                                                 ${user.email ? `<span class="text-sm text-gray-500">(${user.email})</span>` : ''}
-                                                <span class="text-sm px-2 py-0.5 rounded-full ${getPermissionColor(user.permission)}">${user.permission || 'No permission'}</span>
                                             </li>
                                         `).join('')}
                                     </ul>
@@ -472,9 +461,6 @@
                     resultDiv.classList.add('bg-green-50');
                 } else {
                     // Reset statistics cards and tree view on error
-                    document.getElementById('totalUsers').textContent = '-';
-                    document.getElementById('totalEditors').textContent = '-';
-                    document.getElementById('totalAdmins').textContent = '-';
                     treeViewDiv.innerHTML = '';
                     resultDiv.classList.remove('bg-green-50');
                     resultDiv.classList.add('bg-red-50');
@@ -482,9 +468,6 @@
                 }
             } catch (error) {
                 // Reset statistics cards and tree view on error
-                document.getElementById('totalUsers').textContent = '-';
-                document.getElementById('totalEditors').textContent = '-';
-                document.getElementById('totalAdmins').textContent = '-';
                 treeViewDiv.innerHTML = '';
                 resultDiv.classList.remove('bg-green-50');
                 resultDiv.classList.add('bg-red-50');
