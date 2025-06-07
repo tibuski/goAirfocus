@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"strings"
+	"time"
 
 	"net/http"
 
@@ -19,10 +21,12 @@ var templatesFS embed.FS
 //go:embed static/*
 var staticFS embed.FS
 
+// Server represents the HTTP server for the Airfocus API Tools application
 type Server struct {
 	templates *template.Template
 }
 
+// NewServer creates and initializes a new Server instance
 func NewServer() (*Server, error) {
 	tmpl, err := template.ParseFS(templatesFS, "templates/*.html")
 	if err != nil {
@@ -46,13 +50,15 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// WorkspaceIDResponse represents the API response for workspace ID lookup
 type WorkspaceIDResponse struct {
-	Status string `json:"status"`
-	ID     string `json:"id,omitempty"`
-	Alias  string `json:"alias,omitempty"`
-	Error  string `json:"error,omitempty"`
+	Status string `json:"status"`          // Status of the request ("success" or "error")
+	ID     string `json:"id,omitempty"`    // The workspace ID if found
+	Alias  string `json:"alias,omitempty"` // The workspace alias if found
+	Error  string `json:"error,omitempty"` // Error message if the request failed
 }
 
+// handleGetWorkspaceID handles POST requests to get a workspace ID by name
 func (s *Server) handleGetWorkspaceID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -97,18 +103,18 @@ func (s *Server) handleGetWorkspaceID(w http.ResponseWriter, r *http.Request) {
 
 // WorkspaceUsersResponse defines the structure for the API response for workspace users
 type WorkspaceUsersResponse struct {
-	Status string             `json:"status"`
-	Data   WorkspaceUsersData `json:"data,omitempty"`
-	Error  string             `json:"error,omitempty"`
+	Status string             `json:"status"`          // Status of the request ("success" or "error")
+	Data   WorkspaceUsersData `json:"data,omitempty"`  // Contains user statistics and list of users
+	Error  string             `json:"error,omitempty"` // Error message if the request failed
 }
 
-// WorkspaceUsersData combines user statistics and the list of users
+// WorkspaceUsersData combines user statistics and the list of users for a workspace
 type WorkspaceUsersData struct {
-	airfocus.WorkspaceUserStats
-	Users []airfocus.WorkspaceUser `json:"users,omitempty"`
+	airfocus.WorkspaceUserStats                          // Embedded user statistics
+	Users                       []airfocus.WorkspaceUser `json:"users,omitempty"` // List of users with their permissions
 }
 
-// handleGetWorkspaceUsers retrieves user statistics and list of users for a specific workspace
+// handleGetWorkspaceUsers handles POST requests to get user statistics and list of users for a workspace
 func (s *Server) handleGetWorkspaceUsers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -187,19 +193,21 @@ func (s *Server) handleGetWorkspaceUsers(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// FieldIDResponse represents the API response for field ID lookup
 type FieldIDResponse struct {
-	Status string `json:"status"`
-	ID     string `json:"id,omitempty"`
-	Error  string `json:"error,omitempty"`
+	Status string `json:"status"`          // Status of the request ("success" or "error")
+	ID     string `json:"id,omitempty"`    // The field ID if found
+	Error  string `json:"error,omitempty"` // Error message if the request failed
 	Field  *struct {
-		Name           string   `json:"name"`
-		Description    string   `json:"description"`
-		Type           string   `json:"type"`
-		IsTeamField    bool     `json:"isTeamField"`
-		WorkspaceNames []string `json:"workspaceNames,omitempty"`
+		Name           string   `json:"name"`                     // Field name
+		Description    string   `json:"description"`              // Field description
+		Type           string   `json:"type"`                     // Field type
+		IsTeamField    bool     `json:"isTeamField"`              // Whether this is a team-wide field
+		WorkspaceNames []string `json:"workspaceNames,omitempty"` // List of workspace names where this field is used
 	} `json:"field,omitempty"`
 }
 
+// handleGetFieldID handles POST requests to get a field ID by name
 func (s *Server) handleGetFieldID(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -279,25 +287,26 @@ func (s *Server) handleGetFieldID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// FieldAPIResponse represents a single field in the API response for listing fields
+// FieldAPIResponse represents a field in the API response
 type FieldAPIResponse struct {
-	ID             string   `json:"id"`
-	Name           string   `json:"name"`
-	Description    string   `json:"description"`
-	Type           string   `json:"type"`
-	CreatedAt      string   `json:"createdAt"`
-	UpdatedAt      string   `json:"updatedAt"`
-	IsTeamField    bool     `json:"isTeamField"`
-	WorkspaceNames []string `json:"workspaceNames,omitempty"`
+	ID             string   `json:"id"`                       // Unique identifier for the field
+	Name           string   `json:"name"`                     // Field name
+	Description    string   `json:"description"`              // Field description
+	Type           string   `json:"type"`                     // Field type
+	CreatedAt      string   `json:"createdAt"`                // Creation timestamp
+	UpdatedAt      string   `json:"updatedAt"`                // Last update timestamp
+	IsTeamField    bool     `json:"isTeamField"`              // Whether this is a team-wide field
+	WorkspaceNames []string `json:"workspaceNames,omitempty"` // List of workspace names where this field is used
 }
 
-// FieldListResponse represents the response for listing fields
+// FieldListResponse represents the API response for listing fields
 type FieldListResponse struct {
-	Status string             `json:"status"`
-	Data   []FieldAPIResponse `json:"data,omitempty"`
-	Error  string             `json:"error,omitempty"`
+	Status string             `json:"status"`          // Status of the request ("success" or "error")
+	Data   []FieldAPIResponse `json:"data,omitempty"`  // List of fields
+	Error  string             `json:"error,omitempty"` // Error message if the request failed
 }
 
+// handleListFields handles POST requests to list all fields
 func (s *Server) handleListFields(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -353,21 +362,21 @@ func (s *Server) handleListFields(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// UsersWithRolesResponse defines the structure for the API response for users with roles
+// UsersWithRolesResponse represents the API response for listing users with their roles
 type UsersWithRolesResponse struct {
-	Status string                  `json:"status"`
-	Data   []airfocus.UserWithRole `json:"data,omitempty"`
-	Error  string                  `json:"error,omitempty"`
+	Status string                  `json:"status"`          // Status of the request ("success" or "error")
+	Data   []airfocus.UserWithRole `json:"data,omitempty"`  // List of users with their roles
+	Error  string                  `json:"error,omitempty"` // Error message if the request failed
 }
 
-// UserWorkspacesResponse defines the structure for the API response for user workspaces
+// UserWorkspacesResponse represents the API response for listing a user's workspace access
 type UserWorkspacesResponse struct {
-	Status string                         `json:"status"`
-	Data   []airfocus.UserWorkspaceAccess `json:"data,omitempty"`
-	Error  string                         `json:"error,omitempty"`
+	Status string                         `json:"status"`          // Status of the request ("success" or "error")
+	Data   []airfocus.UserWorkspaceAccess `json:"data,omitempty"`  // List of workspaces the user has access to
+	Error  string                         `json:"error,omitempty"` // Error message if the request failed
 }
 
-// handleGetUsersWithRoles retrieves and lists all users with their roles
+// handleGetUsersWithRoles handles POST requests to get a list of users with their roles
 func (s *Server) handleGetUsersWithRoles(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -405,7 +414,7 @@ func (s *Server) handleGetUsersWithRoles(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// handleGetUserWorkspaces retrieves all workspaces a user has access to
+// handleGetUserWorkspaces handles requests to get all workspaces a specific user has access to.
 func (s *Server) handleGetUserWorkspaces(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -420,89 +429,90 @@ func (s *Server) handleGetUserWorkspaces(w http.ResponseWriter, r *http.Request)
 	apiKey := r.FormValue("api_key")
 	userID := r.FormValue("user_id")
 
-	if apiKey == "" {
-		json.NewEncoder(w).Encode(UserWorkspacesResponse{
-			Status: "error",
-			Error:  "API key is required",
-		})
+	if apiKey == "" || userID == "" {
+		http.Error(w, "API key and user ID are required", http.StatusBadRequest)
 		return
 	}
 
-	if userID == "" {
-		json.NewEncoder(w).Encode(UserWorkspacesResponse{
-			Status: "error",
-			Error:  "User ID is required",
-		})
-		return
-	}
+	// Add context with timeout
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second) // Increased timeout slightly
+	defer cancel()
 
 	client := airfocus.NewClient(apiKey)
-	workspaces, err := client.GetUserWorkspaces(r.Context(), userID)
 
-	response := UserWorkspacesResponse{}
+	// --- ADDED: Refresh the workspace cache before getting user workspaces ---
+	if err := client.RefreshCacheIfNeeded(ctx); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to refresh workspace cache: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Use the client method to get user workspaces
+	// NOTE: The GetUserWorkspaces client method will now read from the cache.
+	userWorkspaces, err := client.GetUserWorkspaces(ctx, userID)
 	if err != nil {
-		response.Status = "error"
-		response.Error = err.Error()
-	} else {
-		response.Status = "success"
-		response.Data = workspaces
+		http.Error(w, fmt.Sprintf("Failed to get user workspaces: %v", err), http.StatusInternalServerError)
+		return
 	}
 
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
+	// Prepare and send the response
+	response := UserWorkspacesResponse{
+		Status: "success",
+		Data:   userWorkspaces,
 	}
+	json.NewEncoder(w).Encode(response)
 }
 
-// TeamLicenseInfo represents the license information from the team endpoint
+// TeamLicenseInfo represents the license information for a team
 type TeamLicenseInfo struct {
-	TeamID string `json:"teamId"`
-	Slug   string `json:"slug"`
-	Name   string `json:"name"`
+	TeamID string `json:"teamId"` // Unique identifier for the team
+	Slug   string `json:"slug"`   // Team slug
+	Name   string `json:"name"`   // Team name
 	State  struct {
-		Features []string `json:"features"`
+		Features []string `json:"features"` // List of enabled features
 		Seats    struct {
 			Admin struct {
-				Total int `json:"total"`
-				Used  int `json:"used"`
-				Free  int `json:"free"`
+				Total int `json:"total"` // Total number of admin seats
+				Used  int `json:"used"`  // Number of used admin seats
+				Free  int `json:"free"`  // Number of free admin seats
 			} `json:"admin"`
 			Editor struct {
-				Total int `json:"total"`
-				Used  int `json:"used"`
-				Free  int `json:"free"`
+				Total int `json:"total"` // Total number of editor seats
+				Used  int `json:"used"`  // Number of used editor seats
+				Free  int `json:"free"`  // Number of free editor seats
 			} `json:"editor"`
 			Contributor struct {
-				Total int `json:"total"`
-				Used  int `json:"used"`
-				Free  int `json:"free"`
+				Total int `json:"total"` // Total number of contributor seats
+				Used  int `json:"used"`  // Number of used contributor seats
+				Free  int `json:"free"`  // Number of free contributor seats
 			} `json:"contributor"`
 			Any struct {
-				Total int `json:"total"`
-				Used  int `json:"used"`
-				Free  int `json:"free"`
+				Total int `json:"total"` // Total number of any-type seats
+				Used  int `json:"used"`  // Number of used any-type seats
+				Free  int `json:"free"`  // Number of free any-type seats
 			} `json:"any"`
 		} `json:"seats"`
 		Workspaces struct {
-			Total int `json:"total"`
+			Total int `json:"total"` // Total number of workspaces allowed
 		} `json:"workspaces"`
 		Subscription struct {
-			Type string `json:"type"`
+			Type string `json:"type"` // Type of subscription
 		} `json:"subscription"`
 	} `json:"state"`
 	Flags struct {
-		EnableAi                  struct{ Value, Enforced, Explicit bool } `json:"enableAi"`
-		EnableOkrApp              struct{ Value, Enforced, Explicit bool } `json:"enableOkrApp"`
-		RemoveBranding            struct{ Value, Enforced, Explicit bool } `json:"removeBranding"`
-		ForbidShareLinkCreation   struct{ Value, Enforced, Explicit bool } `json:"forbidShareLinkCreation"`
-		RestrictShareLinkCreation struct{ Value, Enforced, Explicit bool } `json:"restrictShareLinkCreation"`
-		RequireShareLinkPassword  struct{ Value, Enforced, Explicit bool } `json:"requireShareLinkPassword"`
-		RequirePortalLogin        struct{ Value, Enforced, Explicit bool } `json:"requirePortalLogin"`
-		RequirePortalPassword     struct{ Value, Enforced, Explicit bool } `json:"requirePortalPassword"`
+		EnableAi                  struct{ Value, Enforced, Explicit bool } `json:"enableAi"`                  // AI feature flag
+		EnableOkrApp              struct{ Value, Enforced, Explicit bool } `json:"enableOkrApp"`              // OKR app feature flag
+		RemoveBranding            struct{ Value, Enforced, Explicit bool } `json:"removeBranding"`            // Branding removal flag
+		ForbidShareLinkCreation   struct{ Value, Enforced, Explicit bool } `json:"forbidShareLinkCreation"`   // Share link creation restriction flag
+		RestrictShareLinkCreation struct{ Value, Enforced, Explicit bool } `json:"restrictShareLinkCreation"` // Share link creation restriction flag
+		RequireShareLinkPassword  struct{ Value, Enforced, Explicit bool } `json:"requireShareLinkPassword"`  // Share link password requirement flag
+		RequirePortalLogin        struct{ Value, Enforced, Explicit bool } `json:"requirePortalLogin"`        // Portal login requirement flag
+		RequirePortalPassword     struct{ Value, Enforced, Explicit bool } `json:"requirePortalPassword"`     // Portal password requirement flag
 	} `json:"flags"`
-	CreatedAt string `json:"createdAt"`
-	UpdatedAt string `json:"updatedAt"`
+	CreatedAt string `json:"createdAt"` // Creation timestamp
+	UpdatedAt string `json:"updatedAt"` // Last update timestamp
 }
 
+// handleGetTeamLicense handles GET requests to retrieve team license information
 func handleGetTeamLicense(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -553,6 +563,59 @@ func handleGetTeamLicense(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// ContributorsResponse represents the API response for listing contributors
+type ContributorsResponse struct {
+	Status string                  `json:"status"`          // Status of the request ("success" or "error")
+	Data   []airfocus.UserWithRole `json:"data,omitempty"`  // List of contributors
+	Error  string                  `json:"error,omitempty"` // Error message if the request failed
+}
+
+// handleGetContributors handles POST requests to get a list of contributors
+func (s *Server) handleGetContributors(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != http.MethodPost {
+		json.NewEncoder(w).Encode(ContributorsResponse{
+			Status: "error",
+			Error:  "Method not allowed",
+		})
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	if apiKey == "" {
+		json.NewEncoder(w).Encode(ContributorsResponse{
+			Status: "error",
+			Error:  "API key is required",
+		})
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+	users, err := client.FormatUsersWithRoles(r.Context())
+
+	response := ContributorsResponse{}
+	if err != nil {
+		response.Status = "error"
+		response.Error = err.Error()
+	} else {
+		// Filter only contributors
+		var contributors []airfocus.UserWithRole
+		for _, user := range users {
+			if strings.ToLower(user.Role) == "contributor" {
+				contributors = append(contributors, user)
+			}
+		}
+		response.Status = "success"
+		response.Data = contributors
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+	}
+}
+
+// main is the entry point of the application
 func main() {
 	server, err := NewServer()
 	if err != nil {
@@ -636,6 +699,9 @@ func main() {
 
 	// Add the new endpoint
 	http.HandleFunc("/api/team/license", handleGetTeamLicense)
+
+	// Add the new endpoint for listing contributors
+	http.HandleFunc("/api/contributors", server.handleGetContributors)
 
 	// Web interface
 	http.HandleFunc("/", server.handleIndex)

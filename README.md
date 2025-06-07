@@ -1,214 +1,92 @@
-# Airfocus API Tools
+# Airfocus API Client
 
-A simple web application that provides tools to interact with the Airfocus API, specifically designed to help users find workspace and field IDs, and manage workspace users easily.
+A Go client for the Airfocus API that provides easy access to workspace, user, and field management functionality.
 
 ## Features
 
-- 🔑 Secure API key management (client-side only)
-- 📊 **License Information**: View total, used, and free licenses with a modern card-based interface
-- 👥 **Role Statistics**: Get team-wide statistics for total users, admins, editors, and contributors
-- 🔍 Workspace ID lookup by name or dropdown selection
-- 👥 **Workspace Users**: Get a list of users for a selected workspace, grouped by their permission level (Full, Write, Comment, Read-Only).
-- 📋 Field ID lookup by name or dropdown selection
-- 🎯 Workspace alias display
-- 💻 Modern, responsive UI using Tailwind CSS
-- 🔒 Context-aware API requests with proper error handling
-- 🔄 Automatic filtering of fields created on 2025-03-20 with empty updatedAt
-- 📊 Team field workspace count display
-- 🏢 Workspace name display for non-team fields
-- 🌳 **Workspace Hierarchy**: View workspaces organized by their group hierarchy, with color-coded permission badges
-- 🔄 **Data Caching**: Efficient API usage with automatic caching of user, workspace, and field data
+- **User Management**
+  - List all users with their roles
+  - Get user workspace access with hierarchical group display
+  - View user permissions across workspaces
 
-## Prerequisites
+- **Workspace Management**
+  - List all workspaces
+  - Search workspaces by name
+  - Get workspace details including permissions
+  - View workspace hierarchy with groups
 
-- Go 1.21 or later (for local development)
-- Docker and Docker Compose (for containerized deployment)
-- An Airfocus API key with appropriate permissions
-- Traefik (for production deployment)
-
-## Installation
-
-### Local Development
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/tibuski/goAirfocus.git
-   cd goAirfocus
-   ```
-
-2. Install dependencies:
-   ```bash
-   go mod download
-   ```
-
-3. Run the application:
-   ```bash
-   go run .
-   ```
-
-The server will start on `http://localhost:8080`
-
-### Docker Deployment
-
-The application supports two deployment modes:
-
-#### Development Mode
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/tibuski/goAirfocus.git
-   cd goAirfocus
-   ```
-
-2. Build and start the container:
-   ```bash
-   docker-compose up -d
-   ```
-
-The application will be available at `http://localhost:8080`
-
-#### Production Mode with Traefik
-1. Ensure you have a Traefik network running:
-   ```bash
-   docker network create traefik_network
-   ```
-
-2. The application will use the `docker-compose.override.yml` configuration which includes:
-   - Traefik labels for routing and TLS
-   - External network configuration
-   - Automatic HTTPS setup
-
-3. Build and start the container:
-   ```bash
-   docker-compose up -d
-   ```
-
-The service will be available at `https://airfocus.yourdomain.com`
-
-### Docker Compose Files
-- `docker-compose.yml`: Base configuration for the application
-- `docker-compose.override.yml`: Production configuration with Traefik settings
-  ```yaml
-  services:
-    airfocus-tools:
-      labels:
-        traefik.enable: true
-        traefik.http.routers.airfocus.entrypoints: websecure
-        traefik.http.routers.airfocus.tls: true
-        traefik.http.routers.airfocus.tls.certresolver: myresolver
-        traefik.http.routers.airfocus.rule: Host(`airfocus.yourdomain.com`)
-  networks:
-    default:
-      name: traefik_network
-      external: true
-  ```
-
-### Maintenance
-
-To update to the latest version:
-```bash
-git pull
-docker-compose up -d --build
-```
-
-To view logs:
-```bash
-docker-compose logs -f
-```
-
-To stop the application:
-```bash
-docker-compose down
-```
+- **Field Management**
+  - List all fields
+  - Search fields by workspace
+  - View field usage across workspaces
 
 ## Usage
 
-1. Open your web browser and navigate to:
-   - Development: `http://localhost:8080`
-   - Production: `https://airfocus.yourdomain.com`
-2. Enter your Airfocus API key in the provided field
-3. Use the tools to:
-   - Get workspace IDs by name or from a dropdown list
-   - Get user statistics for a selected workspace (total users, editors, and administrators)
-   - Get field IDs by name or from a dropdown list
-   - View workspace aliases alongside workspace names
-   - See workspace names for non-team fields
-   - View the number of workspaces for team fields
+### User Workspace Access
 
-## Field Display Format
+The client provides a hierarchical view of user workspace access, showing:
 
-- Team Fields: `Field Name (Team Field) - Used in X workspaces`
-- Non-team Fields: `Field Name (Workspace1, Workspace2, ...)`
+- Workspaces grouped by their workspace groups
+- Permission levels for each workspace (full, write, read, comment)
+- Clear visual hierarchy with group paths
+- Color-coded permission badges
 
-## API Endpoints
-
-The application provides the following backend endpoints:
-
-- `POST /api/team/license` - Get team license information
-- `POST /api/users/roles` - Get team-wide user role statistics
-- `POST /api/workspaces` - List all available workspaces
-- `POST /api/workspace/id` - Get workspace ID by name
-- `POST /api/workspace/users` - Get user statistics (total users, editors, administrators) for a specific workspace
-- `POST /api/workspace/hierarchy` - Get workspace hierarchy with group information and user permissions
-- `POST /api/fields` - List all available fields
-- `POST /api/field/id` - Get field ID by name
-
-## Project Structure
-
+Example:
 ```
-.
-├── main.go                    # Main application entry point
-├── airfocus/                  # Airfocus API client package
-│   └── client.go             # API client implementation
-├── templates/                 # HTML templates
-│   └── index.html            # Main application template
-├── static/                   # Static assets
-├── Dockerfile                # Docker build instructions
-├── docker-compose.yml        # Base Docker Compose configuration
-├── docker-compose.override.yml # Production Docker Compose configuration
-├── go.mod                    # Go module definition
-└── README.md                 # This file
+Group A > Subgroup 1
+  - Workspace 1 [full]
+  - Workspace 2 [write]
+
+Group B
+  - Workspace 3 [read]
+  - Workspace 4 [comment]
+
+Ungrouped Workspaces
+  - Workspace 5 [full]
 ```
 
-## Development
+### API Key
 
-### Building
+All requests require an Airfocus API key. You can obtain one from your Airfocus account settings.
 
-To build the application:
+## Installation
 
 ```bash
-go build -o airfocus-tools
+go get github.com/yourusername/airfocus
 ```
 
-### Testing
+## Example
 
-To run the tests:
+```go
+package main
 
-```bash
-go test ./...
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "github.com/yourusername/airfocus"
+)
+
+func main() {
+    client := airfocus.NewClient("your-api-key")
+    ctx := context.Background()
+
+    // Get user workspace access
+    workspaces, err := client.GetUserWorkspaces(ctx, "user-id")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Workspaces are returned with group hierarchy information
+    for _, ws := range workspaces {
+        fmt.Printf("Workspace: %s\n", ws.WorkspaceName)
+        fmt.Printf("Group: %s\n", ws.GroupPath)
+        fmt.Printf("Permission: %s\n", ws.Permission)
+    }
+}
 ```
-
-## Security
-
-- API keys are never stored on the server
-- All API requests are made with proper context handling
-- HTTPS is enforced in production via Traefik
-- TLS certificates are automatically managed by Traefik
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- [Airfocus API Documentation](https://developer.airfocus.com/)
-- [Tailwind CSS](https://tailwindcss.com/)
-- [Go Programming Language](https://golang.org/)
-- [Traefik](https://traefik.io/)
+MIT License

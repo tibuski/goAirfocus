@@ -138,29 +138,69 @@
                 <!-- List Users with Roles -->
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-3">List Users with Roles</h3>
-                    <button id="getUsersWithRolesBtn" onclick="getUsersWithRoles()" 
-                            class="btn">
-                        Get Users
-                    </button>
-                    <div id="usersWithRolesResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
-                        <div class="mb-4">
-                            <select id="userSelect" 
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="">Select a user to view their workspaces...</option>
-                            </select>
-                        </div>
-                        <button id="getUserWorkspacesBtn" onclick="getUserWorkspaces()" 
+                    <div class="space-y-4">
+                        <button id="getUsersWithRolesBtn" onclick="getUsersWithRoles()" 
                                 class="btn">
-                            Get User's Workspaces
+                            Get Users
                         </button>
+                        <div id="usersWithRolesResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                            <div class="mb-4">
+                                <select id="userSelect" 
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Select a user to view their workspaces...</option>
+                                </select>
+                            </div>
+                            <button id="getUserWorkspacesBtn" onclick="getUserWorkspaces()" 
+                                    class="btn">
+                                Get User's Workspaces
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- User Workspaces -->
+                <!-- Get User Workspaces -->
                 <div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">User's Workspace Access</h3>
-                    <div id="userWorkspacesResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
-                        <pre class="text-sm text-gray-700"></pre>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Get User Workspaces</h3>
+                    <div class="space-y-4">
+                        <div id="userWorkspacesResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                            <!-- User workspaces table content -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Get Contributors -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Get Contributors</h3>
+                    <div class="space-y-4">
+                        <button id="getContributorsBtn" onclick="getContributors()" 
+                                class="btn">
+                            Get Contributors
+                        </button>
+                        <div id="contributorsResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable('name')">
+                                                Name
+                                                <span id="nameSortIcon" class="ml-1">↕</span>
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable('dateJoined')">
+                                                Date Joined
+                                                <span id="dateJoinedSortIcon" class="ml-1">↕</span>
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable('lastUpdated')">
+                                                Last Updated
+                                                <span id="lastUpdatedSortIcon" class="ml-1">↕</span>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="contributorsTableBody" class="bg-white divide-y divide-gray-200">
+                                        <!-- Table rows will be inserted here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -203,6 +243,11 @@
     <script>
         // --- Utility Functions ---
 
+        /**
+         * Displays a message in the message area with the specified type
+         * @param {string} message - The message to display
+         * @param {string} type - The type of message ('info', 'error', or 'success')
+         */
         function displayMessage(message, type = 'info') {
             const messageArea = document.getElementById('messageArea');
             messageArea.textContent = message;
@@ -220,6 +265,11 @@
             }, 5000);
         }
 
+        /**
+         * Sets the disabled state of a button (currently a no-op)
+         * @param {string} buttonId - The ID of the button
+         * @param {boolean} disabled - Whether the button should be disabled
+         */
         function setButtonState(buttonId, disabled) {
             // No-op function - does nothing
             return;
@@ -227,6 +277,9 @@
 
         // --- API Key Handling ---
 
+        /**
+         * Event listener for DOM content loaded - restores saved API key
+         */
         document.addEventListener('DOMContentLoaded', () => {
             const storedApiKey = localStorage.getItem('airfocus_api_key');
             if (storedApiKey) {
@@ -234,12 +287,19 @@
             }
         });
 
+        /**
+         * Event listener for API key input - saves the API key to localStorage
+         */
         document.getElementById('apiKey').addEventListener('input', (event) => {
             localStorage.setItem('airfocus_api_key', event.target.value);
         });
 
         // --- Workspace Functions ---
 
+        /**
+         * Retrieves and populates the list of workspaces
+         * Updates the workspace select dropdown with the fetched workspaces
+         */
         async function getWorkspaces() {
             const apiKey = document.getElementById('apiKey').value;
             if (!apiKey) {
@@ -290,6 +350,10 @@
             }
         }
 
+        /**
+         * Retrieves a workspace ID by name
+         * Updates the workspace ID input and triggers user list fetch if successful
+         */
         async function getWorkspaceID() {
             const apiKey = document.getElementById('apiKey').value;
             if (!apiKey) {
@@ -358,7 +422,10 @@
             }
         }
 
-        // --- Users Functions ---
+        /**
+         * Retrieves and displays users for the current workspace
+         * Groups users by their permission level and updates the UI
+         */
         async function getWorkspaceUsers() {
             const apiKey = document.getElementById('apiKey').value;
             const workspaceSelect = document.getElementById('workspaceSelect');
@@ -478,6 +545,11 @@
         }
 
         // --- User Management Functions ---
+
+        /**
+         * Retrieves and displays all users with their roles
+         * Updates the user select dropdown with the fetched users
+         */
         async function getUsersWithRoles() {
             const apiKey = document.getElementById('apiKey').value;
             if (!apiKey) {
@@ -537,22 +609,25 @@
             }
         }
 
+        /**
+         * Retrieves and displays all workspaces a selected user has access to
+         * Shows the workspaces in a formatted list with permission levels
+         */
         async function getUserWorkspaces() {
             const apiKey = document.getElementById('apiKey').value;
-            const userSelect = document.getElementById('userSelect');
-            
             if (!apiKey) {
                 displayMessage('Please enter your API key', 'error');
                 return;
             }
 
-            if (!userSelect.value) {
+            const userSelect = document.getElementById('userSelect');
+            const selectedUserId = userSelect.value;
+            if (!selectedUserId) {
                 displayMessage('Please select a user first', 'error');
                 return;
             }
 
             const resultDiv = document.getElementById('userWorkspacesResult');
-            const resultPre = resultDiv.querySelector('pre');
             resultDiv.classList.remove('hidden');
             setButtonState('getUserWorkspacesBtn', true);
 
@@ -564,7 +639,7 @@
                     },
                     body: new URLSearchParams({
                         api_key: apiKey,
-                        user_id: userSelect.value
+                        user_id: selectedUserId
                     })
                 });
 
@@ -600,28 +675,36 @@
                             workspaces.forEach(access => {
                                 workspaceListHtml += `<li class="flex items-center gap-2">`;
                                 workspaceListHtml += `<span class="font-medium">${access.workspaceName}</span>`;
-                                workspaceListHtml += `<span class="text-sm px-2 py-0.5 rounded-full ${getPermissionColor(access.permission)}">${access.permission}</span>`;
+                                workspaceListHtml += `<span class="text-sm px-2 py-0.5 rounded-full 
+                                    ${access.permission === 'full' ? 'bg-green-100 text-green-800' : 
+                                      access.permission === 'write' ? 'bg-blue-100 text-blue-800' : 
+                                      access.permission === 'read' ? 'bg-yellow-100 text-yellow-800' : 
+                                      'bg-gray-100 text-gray-800'}">
+                                    ${access.permission}
+                                </span>`;
                                 workspaceListHtml += `</li>`;
                             });
                             workspaceListHtml += `</ul></div>`;
                         });
 
-                        resultPre.innerHTML = workspaceListHtml;
+                        resultDiv.innerHTML = workspaceListHtml;
                         displayMessage('User workspaces retrieved successfully.', 'success');
+                        resultDiv.classList.remove('bg-red-50');
+                        resultDiv.classList.add('bg-green-50');
                     } else {
-                        resultPre.textContent = 'No workspaces found for this user.';
+                        resultDiv.innerHTML = '<div class="text-center text-gray-500">No workspaces found for this user</div>';
                         displayMessage('No workspaces found for this user.', 'info');
+                        resultDiv.classList.remove('bg-red-50');
+                        resultDiv.classList.add('bg-green-50');
                     }
-                    resultDiv.classList.remove('bg-red-50');
-                    resultDiv.classList.add('bg-green-50');
                 } else {
-                    resultPre.textContent = JSON.stringify(data, null, 2);
+                    resultDiv.innerHTML = '<div class="text-center text-red-500">Error loading user workspaces</div>';
                     resultDiv.classList.remove('bg-green-50');
                     resultDiv.classList.add('bg-red-50');
                     displayMessage('Failed to get user workspaces: ' + data.error, 'error');
                 }
             } catch (error) {
-                resultPre.textContent = `Error: ${error.message}`;
+                resultDiv.innerHTML = '<div class="text-center text-red-500">Error loading user workspaces</div>';
                 resultDiv.classList.remove('bg-green-50');
                 resultDiv.classList.add('bg-red-50');
                 displayMessage('Error fetching user workspaces: ' + error.message, 'error');
@@ -646,8 +729,12 @@
             }
         }
 
-        // --- Field Functions ---
+        // --- Field Management Functions ---
 
+        /**
+         * Retrieves and populates the list of fields
+         * Updates the field select dropdown with the fetched fields
+         */
         async function getFields() {
             const apiKey = document.getElementById('apiKey').value;
             if (!apiKey) {
@@ -719,6 +806,10 @@
             }
         }
 
+        /**
+         * Retrieves a field ID by name
+         * Updates the field result display with the field details
+         */
         async function getFieldID() {
             const apiKey = document.getElementById('apiKey').value;
             if (!apiKey) {
@@ -787,6 +878,12 @@
             }
         }
 
+        // --- License Information Functions ---
+
+        /**
+         * Retrieves and displays team license information
+         * Updates the license statistics and role counts in the UI
+         */
         async function getLicenseInfo() {
             const apiKey = document.getElementById('apiKey').value;
             if (!apiKey) {
@@ -888,6 +985,154 @@
                 displayMessage('Error fetching information: ' + error.message, 'error');
             } finally {
                 setButtonState('getLicenseInfoBtn', false);
+            }
+        }
+
+        /**
+         * Retrieves and displays all contributors in a table
+         */
+        let currentSort = {
+            column: 'name',
+            direction: 'asc'
+        };
+
+        function updateSortIcons(column) {
+            // Reset all icons
+            document.getElementById('nameSortIcon').textContent = '↕';
+            document.getElementById('dateJoinedSortIcon').textContent = '↕';
+            document.getElementById('lastUpdatedSortIcon').textContent = '↕';
+
+            // Set the active sort icon
+            const icon = document.getElementById(column + 'SortIcon');
+            icon.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+        }
+
+        function sortTable(column) {
+            const tableBody = document.getElementById('contributorsTableBody');
+            const rows = Array.from(tableBody.getElementsByTagName('tr'));
+
+            // Toggle sort direction if clicking the same column
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+
+            // Update sort icons
+            updateSortIcons(column);
+
+            // Sort the rows
+            rows.sort((a, b) => {
+                let aValue, bValue;
+
+                switch (column) {
+                    case 'name':
+                        aValue = a.cells[0].textContent.trim();
+                        bValue = b.cells[0].textContent.trim();
+                        break;
+                    case 'dateJoined':
+                        aValue = new Date(a.cells[1].textContent.trim());
+                        bValue = new Date(b.cells[1].textContent.trim());
+                        break;
+                    case 'lastUpdated':
+                        aValue = new Date(a.cells[2].textContent.trim());
+                        bValue = new Date(b.cells[2].textContent.trim());
+                        break;
+                }
+
+                if (currentSort.direction === 'asc') {
+                    return aValue > bValue ? 1 : -1;
+                } else {
+                    return aValue < bValue ? 1 : -1;
+                }
+            });
+
+            // Reorder the rows in the table
+            rows.forEach(row => tableBody.appendChild(row));
+        }
+
+        async function getContributors() {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                displayMessage('Please enter your API key', 'error');
+                return;
+            }
+
+            const resultDiv = document.getElementById('contributorsResult');
+            const tableBody = document.getElementById('contributorsTableBody');
+            resultDiv.classList.remove('hidden');
+            setButtonState('getContributorsBtn', true);
+
+            try {
+                const response = await fetch('/api/contributors', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        api_key: apiKey
+                    })
+                });
+
+                const data = await response.json();
+                if (data.status === 'success') {
+                    if (data.data && data.data.length > 0) {
+                        // Helper function to format date
+                        const formatDate = (dateStr) => {
+                            if (!dateStr) return '-';
+                            const date = new Date(dateStr);
+                            return date.toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        };
+
+                        // Generate table rows
+                        const tableRows = data.data.map(user => `
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">${user.fullName}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">${formatDate(user.createdAt)}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">${formatDate(user.updatedAt)}</div>
+                                </td>
+                            </tr>
+                        `).join('');
+
+                        tableBody.innerHTML = tableRows;
+                        
+                        // Apply the current sort
+                        sortTable(currentSort.column);
+                        
+                        displayMessage('Contributors loaded successfully.', 'success');
+                        resultDiv.classList.remove('bg-red-50');
+                        resultDiv.classList.add('bg-green-50');
+                    } else {
+                        tableBody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">No contributors found</td></tr>';
+                        displayMessage('No contributors found.', 'info');
+                        resultDiv.classList.remove('bg-red-50');
+                        resultDiv.classList.add('bg-green-50');
+                    }
+                } else {
+                    tableBody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-red-500">Error loading contributors</td></tr>';
+                    resultDiv.classList.remove('bg-green-50');
+                    resultDiv.classList.add('bg-red-50');
+                    displayMessage('Failed to get contributors: ' + data.error, 'error');
+                }
+            } catch (error) {
+                tableBody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-red-500">Error loading contributors</td></tr>';
+                resultDiv.classList.remove('bg-green-50');
+                resultDiv.classList.add('bg-red-50');
+                displayMessage('Error fetching contributors: ' + error.message, 'error');
+            } finally {
+                setButtonState('getContributorsBtn', false);
             }
         }
     </script>

@@ -17,21 +17,24 @@ const (
 	baseURL = "https://app.airfocus.com/api"
 )
 
+// Client represents an Airfocus API client
 type Client struct {
-	apiKey     string
-	httpClient *http.Client
+	apiKey     string       // The API key used for authentication
+	httpClient *http.Client // HTTP client for making requests
 
-	// Cache fields
+	// Cache fields for storing frequently accessed data
 	cache struct {
-		users      []User
-		workspaces []Workspace
-		fields     []FieldWithWorkspaceNames
-		lastUpdate time.Time
+		users           []User                    // Cached list of users
+		workspaces      []Workspace               // Cached list of workspaces
+		fields          []FieldWithWorkspaceNames // Cached list of fields
+		workspaceGroups []WorkspaceGroup          // Cached list of workspace groups
+		lastUpdate      time.Time                 // Timestamp of last cache update
 	}
-	cacheMutex sync.RWMutex
-	cacheTTL   time.Duration
+	cacheMutex sync.RWMutex  // Mutex for thread-safe cache access
+	cacheTTL   time.Duration // Time-to-live for cached data
 }
 
+// NewClient creates a new Airfocus API client with the given API key
 func NewClient(apiKey string) *Client {
 	return &Client{
 		apiKey:     apiKey,
@@ -49,98 +52,70 @@ type WorkspaceSearchSortName struct {
 
 // WorkspaceSearchSort represents the sorting options for workspace search
 type WorkspaceSearchSort struct {
-	Type string                  `json:"type"`
-	Name WorkspaceSearchSortName `json:"name"`
+	Type string                  `json:"type"` // Type of sorting
+	Name WorkspaceSearchSortName `json:"name"` // Name sorting options
 }
 
 // WorkspaceSearchFilter represents the filter options for workspace search
 type WorkspaceSearchFilter struct {
-	Type          string `json:"type"`
-	Mode          string `json:"mode"`
-	Text          string `json:"text"`
-	CaseSensitive bool   `json:"caseSensitive"`
+	Type          string `json:"type"`          // Type of filter
+	Mode          string `json:"mode"`          // Filter mode (e.g., "contain")
+	Text          string `json:"text"`          // Filter text
+	CaseSensitive bool   `json:"caseSensitive"` // Whether the filter is case-sensitive
 }
 
 // WorkspaceSearchQuery represents the query parameters for workspace search
 type WorkspaceSearchQuery struct {
-	Sort     WorkspaceSearchSort    `json:"sort"`
-	Archived bool                   `json:"archived"`
-	Filter   *WorkspaceSearchFilter `json:"filter,omitempty"`
+	Sort     WorkspaceSearchSort    `json:"sort"`             // Sorting options
+	Archived bool                   `json:"archived"`         // Whether to include archived workspaces
+	Filter   *WorkspaceSearchFilter `json:"filter,omitempty"` // Optional filter
 }
 
 // --- End Workspace Search Query Structs ---
 
 // WorkspaceGroup represents a group that can contain workspaces and other groups
 type WorkspaceGroup struct {
-	ID                string `json:"id"`
-	Name              string `json:"name"`
-	ParentID          string `json:"parentId,omitempty"`
-	Order             int    `json:"order"`
-	DefaultPermission string `json:"defaultPermission"`
-	CreatedAt         string `json:"createdAt"`
-	LastUpdatedAt     string `json:"lastUpdatedAt"`
-	TeamID            string `json:"teamId"`
+	ID                string `json:"id"`                 // Unique identifier for the group
+	Name              string `json:"name"`               // Group name
+	ParentID          string `json:"parentId,omitempty"` // ID of the parent group, if any
+	Order             int    `json:"order"`              // Display order
+	DefaultPermission string `json:"defaultPermission"`  // Default permission for the group
+	CreatedAt         string `json:"createdAt"`          // Creation timestamp
+	LastUpdatedAt     string `json:"lastUpdatedAt"`      // Last update timestamp
+	TeamID            string `json:"teamId"`             // ID of the team this group belongs to
 	Embedded          struct {
-		Workspaces []Workspace `json:"workspaces,omitempty"`
+		Workspaces []Workspace `json:"workspaces,omitempty"` // List of workspaces in this group
 	} `json:"_embedded,omitempty"`
 }
 
 // WorkspaceGroupSearchQuery represents the query parameters for workspace group search
 type WorkspaceGroupSearchQuery struct {
 	Sort struct {
-		Type      string `json:"type"`
-		Direction string `json:"direction"`
+		Type      string `json:"type"`      // Type of sorting
+		Direction string `json:"direction"` // Sort direction ("asc" or "desc")
 	} `json:"sort"`
 }
 
 // WorkspaceGroupResponse represents the response from the workspace group search API
 type WorkspaceGroupResponse struct {
-	Items      []WorkspaceGroup `json:"items"`
-	TotalItems int              `json:"totalItems"`
+	Items      []WorkspaceGroup `json:"items"`      // List of workspace groups
+	TotalItems int              `json:"totalItems"` // Total number of items
 }
 
 // ListWorkspaceGroups retrieves all workspace groups and their hierarchy
 func (c *Client) ListWorkspaceGroups(ctx context.Context) ([]WorkspaceGroup, error) {
-	query := WorkspaceGroupSearchQuery{
-		Sort: struct {
-			Type      string `json:"type"`
-			Direction string `json:"direction"`
-		}{
-			Type:      "name",
-			Direction: "asc",
-		},
+	// First check if we have cached groups that are still valid
+	if err := c.RefreshCacheIfNeeded(ctx); err != nil {
+		return nil, fmt.Errorf("failed to refresh cache: %w", err)
 	}
 
-	queryJSON, err := json.Marshal(query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal workspace group search query: %w", err)
-	}
+	c.cacheMutex.RLock()
+	defer c.cacheMutex.RUnlock()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", baseURL+"/workspaces/groups/search", bytes.NewBuffer(queryJSON))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create workspace group search request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send workspace group search request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("airfocus API workspace group search failed with status %d: %s", resp.StatusCode, string(body))
-	}
-
-	var result WorkspaceGroupResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode workspace group search response: %w", err)
-	}
-
-	return result.Items, nil
+	// Return a copy of the cached groups
+	groups := make([]WorkspaceGroup, len(c.cache.workspaceGroups))
+	copy(groups, c.cache.workspaceGroups)
+	return groups, nil
 }
 
 // GetWorkspaceHierarchy returns a map of workspace groups organized by their hierarchy
@@ -172,42 +147,44 @@ func (c *Client) GetWorkspaceHierarchy(ctx context.Context) (map[string][]Worksp
 	return hierarchy, nil
 }
 
+// Workspace represents an Airfocus workspace
 type Workspace struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Alias       string `json:"alias"`
+	ID          string `json:"id"`    // Unique identifier for the workspace
+	Name        string `json:"name"`  // Workspace name
+	Alias       string `json:"alias"` // Workspace alias
 	Description struct {
-		Blocks []interface{} `json:"blocks"` // Consider json.RawMessage if just passing through
+		Blocks []interface{} `json:"blocks"` // Description blocks
 	} `json:"description"`
-	ItemType      string `json:"itemType"`
-	ItemColor     string `json:"itemColor"`
-	ProgressMode  string `json:"progressMode"`
-	Archived      bool   `json:"archived"`
-	CreatedAt     string `json:"createdAt"`
-	LastUpdatedAt string `json:"lastUpdatedAt"`
+	ItemType      string `json:"itemType"`      // Type of items in the workspace
+	ItemColor     string `json:"itemColor"`     // Color for items
+	ProgressMode  string `json:"progressMode"`  // Progress tracking mode
+	Archived      bool   `json:"archived"`      // Whether the workspace is archived
+	CreatedAt     string `json:"createdAt"`     // Creation timestamp
+	LastUpdatedAt string `json:"lastUpdatedAt"` // Last update timestamp
 	Metadata      struct {
-		Version    string `json:"version"`
-		Duplicated bool   `json:"duplicated"`
+		Version    string `json:"version"`    // Workspace version
+		Duplicated bool   `json:"duplicated"` // Whether this is a duplicated workspace
 	} `json:"metadata"`
-	Namespace string   `json:"namespace"`
-	Order     int      `json:"order"`
-	TeamID    string   `json:"teamId"`
-	Embedded  struct { // Correctly define _embedded to capture permissions
-		Permissions map[string]string `json:"permissions"` // userId: Permission (string like "read", "write", "full", "comment")
+	Namespace string `json:"namespace"` // Workspace namespace
+	Order     int    `json:"order"`     // Display order
+	TeamID    string `json:"teamId"`    // ID of the team this workspace belongs to
+	Embedded  struct {
+		Permissions map[string]string `json:"permissions"` // Map of user IDs to their permissions
 	} `json:"_embedded,omitempty"`
 	GroupID   string `json:"groupId,omitempty"`   // ID of the group this workspace belongs to
 	GroupName string `json:"groupName,omitempty"` // Name of the group this workspace belongs to
 }
 
+// WorkspaceResponse represents the response from the workspace search API
 type WorkspaceResponse struct {
-	Items      []Workspace `json:"items"`
-	TotalItems int         `json:"totalItems"`
+	Items      []Workspace `json:"items"`      // List of workspaces
+	TotalItems int         `json:"totalItems"` // Total number of items
 }
 
 // WorkspaceResult represents the result of a workspace search
 type WorkspaceResult struct {
-	ID    string
-	Alias string
+	ID    string // Workspace ID
+	Alias string // Workspace alias
 }
 
 // GetWorkspaceIDByName searches for a workspace by name and returns its ID and alias
@@ -272,32 +249,31 @@ func (c *Client) GetWorkspaceIDByName(ctx context.Context, name string) (Workspa
 	}, nil
 }
 
-// FieldSearchQuery matches the OpenAPI definition for /api/fields/search
-// This replaces the old, unused FieldSearchQuery and the FieldListQuery related structs.
+// FieldSearchQuery represents the query parameters for field search
 type FieldSearchQuery struct {
-	IsTeamField  bool     `json:"isTeamField,omitempty"`
-	WorkspaceIDs []string `json:"workspaceIds,omitempty"`
+	IsTeamField  bool     `json:"isTeamField,omitempty"`  // Whether to search for team fields
+	WorkspaceIDs []string `json:"workspaceIds,omitempty"` // List of workspace IDs to search in
 }
 
-// Field represents a field in Airfocus
+// Field represents an Airfocus field
 type Field struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Type        string `json:"type"`
-	CreatedAt   string `json:"createdAt"`
-	UpdatedAt   string `json:"updatedAt"`
-	IsTeamField bool   `json:"isTeamField"`
+	ID          string `json:"id"`          // Unique identifier for the field
+	Name        string `json:"name"`        // Field name
+	Description string `json:"description"` // Field description
+	Type        string `json:"type"`        // Field type
+	CreatedAt   string `json:"createdAt"`   // Creation timestamp
+	UpdatedAt   string `json:"updatedAt"`   // Last update timestamp
+	IsTeamField bool   `json:"isTeamField"` // Whether this is a team-wide field
 	Embedded    struct {
 		Workspaces []struct {
-			WorkspaceID string `json:"workspaceId"`
-			Order       int    `json:"order"`
+			WorkspaceID string `json:"workspaceId"` // ID of the workspace this field belongs to
+			Order       int    `json:"order"`       // Display order in the workspace
 		} `json:"workspaces"`
-		AllWorkspaceIDs []string `json:"allWorkspaceIds"` // This field is not in OpenAPI spec, but API might return it. Go will unmarshal if present.
+		AllWorkspaceIDs []string `json:"allWorkspaceIds"` // List of all workspace IDs this field belongs to
 	} `json:"_embedded,omitempty"`
 }
 
-// GetWorkspaceCount returns the number of workspaces where this field is used
+// GetWorkspaceCount returns the number of workspaces this field belongs to
 func (f *Field) GetWorkspaceCount() int {
 	if f.IsTeamField && f.Embedded.AllWorkspaceIDs != nil {
 		return len(f.Embedded.AllWorkspaceIDs)
@@ -310,11 +286,11 @@ func (f *Field) GetWorkspaceCount() int {
 
 // FieldSearchResponse represents the response from the field search API
 type FieldSearchResponse struct {
-	Items      []Field `json:"items"`
-	TotalItems int     `json:"totalItems"`
+	Items      []Field `json:"items"`      // List of fields
+	TotalItems int     `json:"totalItems"` // Total number of items
 }
 
-// GetWorkspaceByID retrieves workspace details by ID
+// GetWorkspaceByID retrieves a workspace by its ID
 func (c *Client) GetWorkspaceByID(ctx context.Context, workspaceID string) (Workspace, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/workspaces/%s", baseURL, workspaceID), nil)
 	if err != nil {
@@ -342,15 +318,15 @@ func (c *Client) GetWorkspaceByID(ctx context.Context, workspaceID string) (Work
 	return workspace, nil
 }
 
-// FieldWithWorkspaceNames extends Field with workspace names
+// FieldWithWorkspaceNames extends Field with a list of workspace names
 type FieldWithWorkspaceNames struct {
 	Field
-	WorkspaceNames []string
+	WorkspaceNames []string // List of workspace names this field belongs to
 }
 
-// ListFields retrieves all fields accessible to the API key
+// ListFields retrieves all fields with their workspace names
 func (c *Client) ListFields(ctx context.Context) ([]FieldWithWorkspaceNames, error) {
-	if err := c.refreshCacheIfNeeded(ctx); err != nil {
+	if err := c.RefreshCacheIfNeeded(ctx); err != nil {
 		return nil, err
 	}
 
@@ -363,9 +339,9 @@ func (c *Client) ListFields(ctx context.Context) ([]FieldWithWorkspaceNames, err
 	return fields, nil
 }
 
-// ListWorkspaces returns a list of all workspaces accessible to the API key
+// ListWorkspaces retrieves all workspaces
 func (c *Client) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
-	if err := c.refreshCacheIfNeeded(ctx); err != nil {
+	if err := c.RefreshCacheIfNeeded(ctx); err != nil {
 		return nil, err
 	}
 
@@ -380,6 +356,14 @@ func (c *Client) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
 		GroupID   string
 		GroupName string
 	})
+
+	// Create a map of group IDs to their names for quick lookup
+	groupNameMap := make(map[string]string)
+	for _, group := range groups {
+		groupNameMap[group.ID] = group.Name
+	}
+
+	// First, process all groups and their embedded workspaces
 	for _, group := range groups {
 		for _, ws := range group.Embedded.Workspaces {
 			workspaceGroupMap[ws.ID] = struct {
@@ -395,32 +379,52 @@ func (c *Client) ListWorkspaces(ctx context.Context) ([]Workspace, error) {
 	c.cacheMutex.RLock()
 	defer c.cacheMutex.RUnlock()
 
-	// Return a copy of the cached workspaces with group information
-	workspaces := make([]Workspace, len(c.cache.workspaces))
-	copy(workspaces, c.cache.workspaces)
+	// Process all workspaces and add group information
+	var workspaces []Workspace
+	for _, ws := range c.cache.workspaces {
+		// Create a copy of the workspace
+		workspace := ws
 
-	// Add group information to each workspace
-	for i := range workspaces {
-		if groupInfo, ok := workspaceGroupMap[workspaces[i].ID]; ok {
-			workspaces[i].GroupID = groupInfo.GroupID
-			workspaces[i].GroupName = groupInfo.GroupName
+		// First check if the workspace already has a GroupID
+		if workspace.GroupID != "" {
+			// If it has a GroupID but no GroupName, look up the group name
+			if workspace.GroupName == "" {
+				if groupName, ok := groupNameMap[workspace.GroupID]; ok {
+					workspace.GroupName = groupName
+				}
+			}
+		} else {
+			// If no GroupID, check if it's in the workspaceGroupMap
+			if groupInfo, ok := workspaceGroupMap[ws.ID]; ok {
+				workspace.GroupID = groupInfo.GroupID
+				workspace.GroupName = groupInfo.GroupName
+			}
 		}
+
+		workspaces = append(workspaces, workspace)
 	}
 
 	return workspaces, nil
 }
 
-// User represents a team member from the /api/team/users endpoint
+// User represents an Airfocus user
 type User struct {
-	UserID   string `json:"userId"`
-	FullName string `json:"fullName"`
-	Email    string `json:"email"`
-	Role     string `json:"role"` // e.g., "admin", "contributor", "editor"
+	UserID        string     `json:"userId"`        // Unique identifier for the user
+	TeamID        string     `json:"teamId"`        // ID of the team this user belongs to
+	FullName      string     `json:"fullName"`      // User's full name
+	Email         string     `json:"email"`         // User's email address
+	Role          string     `json:"role"`          // User's role (e.g., "admin", "contributor", "editor")
+	State         *UserState `json:"state"`         // User's state (pending, unseated)
+	IsTeamCreator bool       `json:"isTeamCreator"` // Whether this user created the team
+	Disabled      bool       `json:"disabled"`      // Whether the user is disabled
+	EmailVerified bool       `json:"emailVerified"` // Whether the user's email is verified
+	CreatedAt     string     `json:"createdAt"`     // When the user was created
+	UpdatedAt     string     `json:"updatedAt"`     // When the user was last updated
 }
 
-// ListUsers retrieves all users in the team (now uses cache)
+// ListUsers retrieves all users
 func (c *Client) ListUsers(ctx context.Context) ([]User, error) {
-	if err := c.refreshCacheIfNeeded(ctx); err != nil {
+	if err := c.RefreshCacheIfNeeded(ctx); err != nil {
 		return nil, err
 	}
 
@@ -439,15 +443,15 @@ func (c *Client) ListUsers(ctx context.Context) ([]User, error) {
 	return users, nil
 }
 
-// WorkspaceUser combines user details with their specific permission for a workspace
+// WorkspaceUser represents a user with their permission level in a workspace
 type WorkspaceUser struct {
-	UserID     string `json:"userId"`
-	FullName   string `json:"fullName"`
-	Email      string `json:"email"`
-	Permission string `json:"permission"` // "read", "write", "full", "comment"
+	UserID     string `json:"userId"`     // Unique identifier for the user
+	FullName   string `json:"fullName"`   // User's full name
+	Email      string `json:"email"`      // User's email address
+	Permission string `json:"permission"` // User's permission level ("read", "write", "full", "comment")
 }
 
-// GetWorkspaceUsers retrieves users and their permissions for a specific workspace
+// GetWorkspaceUsers retrieves all users with their permissions for a specific workspace
 func (c *Client) GetWorkspaceUsers(ctx context.Context, workspaceID string) ([]WorkspaceUser, error) {
 	// Get workspace details to access embedded permissions
 	workspace, err := c.GetWorkspaceByID(ctx, workspaceID)
@@ -495,32 +499,38 @@ func (c *Client) GetWorkspaceUsers(ctx context.Context, workspaceID string) ([]W
 	return workspaceUsers, nil
 }
 
-// UserState represents the state of a user in the team
+// UserState represents the state of a user in the system
 type UserState struct {
-	Pending  bool `json:"pending"`
-	Unseated bool `json:"unseated"`
+	Pending  bool `json:"pending"`  // Whether the user's invitation is pending
+	Unseated bool `json:"unseated"` // Whether the user is unseated
 }
 
-// UserWithRole represents a user with their role information
+// UserWithRole represents a user with their role and state
 type UserWithRole struct {
-	UserID   string     `json:"userId"`
-	FullName string     `json:"fullName"`
-	Email    string     `json:"email"`
-	Role     string     `json:"role"`
-	State    *UserState `json:"state,omitempty"`
+	UserID        string     `json:"userId"`        // Unique identifier for the user
+	TeamID        string     `json:"teamId"`        // ID of the team this user belongs to
+	FullName      string     `json:"fullName"`      // User's full name
+	Email         string     `json:"email"`         // User's email address
+	Role          string     `json:"role"`          // User's role
+	State         *UserState `json:"state"`         // User's state
+	IsTeamCreator bool       `json:"isTeamCreator"` // Whether this user created the team
+	Disabled      bool       `json:"disabled"`      // Whether the user is disabled
+	EmailVerified bool       `json:"emailVerified"` // Whether the user's email is verified
+	CreatedAt     string     `json:"createdAt"`     // When the user was created
+	UpdatedAt     string     `json:"updatedAt"`     // When the user was last updated
 }
 
-// UserWorkspaceAccess represents a workspace and the user's permission level for it
+// UserWorkspaceAccess represents a user's access to a workspace
 type UserWorkspaceAccess struct {
-	WorkspaceID   string `json:"workspaceId"`
-	WorkspaceName string `json:"workspaceName"`
-	Permission    string `json:"permission"`
-	GroupID       string `json:"groupId,omitempty"`
-	GroupName     string `json:"groupName,omitempty"`
+	WorkspaceID   string `json:"workspaceId"`         // ID of the workspace
+	WorkspaceName string `json:"workspaceName"`       // Name of the workspace
+	Permission    string `json:"permission"`          // User's permission level
+	GroupID       string `json:"groupId,omitempty"`   // ID of the group this workspace belongs to
+	GroupName     string `json:"groupName,omitempty"` // Name of the group this workspace belongs to
 	GroupPath     string `json:"groupPath,omitempty"` // Full path to the group (e.g., "Parent Group > Child Group")
 }
 
-// FormatUsersWithRoles returns a list of users with their roles in parentheses
+// FormatUsersWithRoles retrieves and formats all users with their roles
 func (c *Client) FormatUsersWithRoles(ctx context.Context) ([]UserWithRole, error) {
 	users, err := c.ListUsers(ctx)
 	if err != nil {
@@ -530,124 +540,104 @@ func (c *Client) FormatUsersWithRoles(ctx context.Context) ([]UserWithRole, erro
 	formattedUsers := make([]UserWithRole, len(users))
 	for i, user := range users {
 		formattedUsers[i] = UserWithRole{
-			UserID:   user.UserID,
-			FullName: user.FullName,
-			Email:    user.Email,
-			Role:     user.Role,
+			UserID:        user.UserID,
+			TeamID:        user.TeamID,
+			FullName:      user.FullName,
+			Email:         user.Email,
+			Role:          user.Role,
+			State:         user.State,
+			IsTeamCreator: user.IsTeamCreator,
+			Disabled:      user.Disabled,
+			EmailVerified: user.EmailVerified,
+			CreatedAt:     user.CreatedAt,
+			UpdatedAt:     user.UpdatedAt,
 		}
 	}
 
 	return formattedUsers, nil
 }
 
-// GetUserWorkspaces retrieves all workspaces a user has access to and their permission level
+// GetUserWorkspaces retrieves all workspaces a selected user has access to
 func (c *Client) GetUserWorkspaces(ctx context.Context, userID string) ([]UserWorkspaceAccess, error) {
-	// First get all workspaces with their group information
+	if err := c.RefreshCacheIfNeeded(ctx); err != nil {
+		return nil, fmt.Errorf("failed to refresh workspace cache before getting user workspaces: %w", err)
+	}
+
+	// Get all workspaces with their group information
 	workspaces, err := c.ListWorkspaces(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list workspaces: %w", err)
 	}
 
-	// Get workspace groups to build the hierarchy
+	// Get workspace groups for path construction
 	groups, err := c.ListWorkspaceGroups(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspace groups: %w", err)
 	}
 
-	// Build a map of group IDs to their full paths
-	groupPaths := make(map[string]string)
-	groupNames := make(map[string]string)
-
-	// First pass: collect all group names
+	// Create a map of group IDs to their names for quick lookup
+	groupMap := make(map[string]string)
 	for _, group := range groups {
-		groupNames[group.ID] = group.Name
+		groupMap[group.ID] = group.Name
 	}
 
-	// Second pass: build full paths
+	// Create a map of group IDs to their parent IDs for path construction
+	groupParentMap := make(map[string]string)
 	for _, group := range groups {
-		if group.ParentID == "" {
-			groupPaths[group.ID] = group.Name
-			continue
+		if group.ParentID != "" {
+			groupParentMap[group.ID] = group.ParentID
+		}
+	}
+
+	// Helper function to get the full group path
+	getFullGroupPath := func(groupID string) string {
+		if groupID == "" {
+			return ""
 		}
 
-		// Build path by traversing up the hierarchy
-		path := group.Name
-		currentID := group.ParentID
+		var path []string
+		currentID := groupID
 		for currentID != "" {
-			if parentName, ok := groupNames[currentID]; ok {
-				path = parentName + " > " + path
-				// Find the parent's parent
-				for _, g := range groups {
-					if g.ID == currentID {
-						currentID = g.ParentID
-						break
-					}
-				}
+			if name, ok := groupMap[currentID]; ok {
+				path = append([]string{name}, path...)
+				currentID = groupParentMap[currentID]
 			} else {
 				break
 			}
 		}
-		groupPaths[group.ID] = path
+
+		return strings.Join(path, " > ")
 	}
 
 	var userWorkspaces []UserWorkspaceAccess
 
-	// For each workspace, check if the user has access
+	// Iterate through all workspaces
 	for _, workspace := range workspaces {
-		// Get workspace users to check permissions
-		workspaceUsers, err := c.GetWorkspaceUsers(ctx, workspace.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get users for workspace %s: %w", workspace.ID, err)
-		}
+		// Check if the user ID exists in the workspace's permissions map
+		if permission, ok := workspace.Embedded.Permissions[userID]; ok {
+			// Get the full group path for this workspace
+			groupPath := getFullGroupPath(workspace.GroupID)
 
-		// Find the user's permission in this workspace
-		for _, workspaceUser := range workspaceUsers {
-			if workspaceUser.UserID == userID {
-				access := UserWorkspaceAccess{
-					WorkspaceID:   workspace.ID,
-					WorkspaceName: workspace.Name,
-					Permission:    workspaceUser.Permission,
-				}
-
-				// Add group information if the workspace belongs to a group
-				if workspace.GroupID != "" {
-					access.GroupID = workspace.GroupID
-					access.GroupName = workspace.GroupName
-					if path, ok := groupPaths[workspace.GroupID]; ok {
-						access.GroupPath = path
-					}
-				}
-
-				userWorkspaces = append(userWorkspaces, access)
-				break
-			}
+			// User has a specific permission for this workspace
+			userWorkspaces = append(userWorkspaces, UserWorkspaceAccess{
+				WorkspaceID:   workspace.ID,
+				WorkspaceName: workspace.Name,
+				Permission:    permission,
+				GroupID:       workspace.GroupID,
+				GroupName:     workspace.GroupName,
+				GroupPath:     groupPath,
+			})
 		}
 	}
-
-	// Sort workspaces by group path and then by workspace name
-	sort.Slice(userWorkspaces, func(i, j int) bool {
-		// First sort by group path (empty paths go last)
-		if userWorkspaces[i].GroupPath != userWorkspaces[j].GroupPath {
-			if userWorkspaces[i].GroupPath == "" {
-				return false
-			}
-			if userWorkspaces[j].GroupPath == "" {
-				return true
-			}
-			return userWorkspaces[i].GroupPath < userWorkspaces[j].GroupPath
-		}
-		// Then sort by workspace name
-		return userWorkspaces[i].WorkspaceName < userWorkspaces[j].WorkspaceName
-	})
 
 	return userWorkspaces, nil
 }
 
-// WorkspaceUserStats represents the statistics of users in a workspace
+// WorkspaceUserStats represents statistics about users in a workspace
 type WorkspaceUserStats struct {
-	TotalUsers   int `json:"totalUsers"`
-	TotalEditors int `json:"totalEditors"`
-	TotalAdmins  int `json:"totalAdmins"`
+	TotalUsers   int `json:"totalUsers"`   // Total number of users
+	TotalEditors int `json:"totalEditors"` // Total number of editors
+	TotalAdmins  int `json:"totalAdmins"`  // Total number of administrators
 }
 
 // GetWorkspaceUserStats retrieves user statistics for a specific workspace
@@ -675,8 +665,52 @@ func (c *Client) GetWorkspaceUserStats(ctx context.Context, workspaceID string) 
 	return stats, nil
 }
 
-// refreshCacheIfNeeded checks if the cache needs to be refreshed and updates it if necessary
-func (c *Client) refreshCacheIfNeeded(ctx context.Context) error {
+// fetchWorkspaceGroups retrieves and caches the list of workspace groups
+func (c *Client) fetchWorkspaceGroups(ctx context.Context) ([]WorkspaceGroup, error) {
+	query := WorkspaceGroupSearchQuery{
+		Sort: struct {
+			Type      string `json:"type"`
+			Direction string `json:"direction"`
+		}{
+			Type:      "name",
+			Direction: "asc",
+		},
+	}
+
+	queryJSON, err := json.Marshal(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal workspace group search query: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", baseURL+"/workspaces/groups/search", bytes.NewBuffer(queryJSON))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create workspace group search request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send workspace group search request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("airfocus API workspace group search failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result WorkspaceGroupResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode workspace group search response: %w", err)
+	}
+
+	return result.Items, nil
+}
+
+// RefreshCacheIfNeeded checks if the cache is stale and refreshes it if necessary.
+func (c *Client) RefreshCacheIfNeeded(ctx context.Context) error {
 	c.cacheMutex.RLock()
 	needsRefresh := time.Since(c.cache.lastUpdate) > c.cacheTTL
 	c.cacheMutex.RUnlock()
@@ -685,7 +719,7 @@ func (c *Client) refreshCacheIfNeeded(ctx context.Context) error {
 		return nil
 	}
 
-	// Need to refresh cache, acquire write lock
+	// Acquire a write lock to update the cache
 	c.cacheMutex.Lock()
 	defer c.cacheMutex.Unlock()
 
@@ -696,7 +730,7 @@ func (c *Client) refreshCacheIfNeeded(ctx context.Context) error {
 
 	// Fetch all data in parallel
 	var wg sync.WaitGroup
-	var errChan = make(chan error, 3)
+	var errChan = make(chan error, 4) // Increased to 4 for workspace groups
 
 	// Fetch users
 	wg.Add(1)
@@ -734,6 +768,18 @@ func (c *Client) refreshCacheIfNeeded(ctx context.Context) error {
 		c.cache.fields = fields
 	}()
 
+	// Fetch workspace groups
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		groups, err := c.fetchWorkspaceGroups(ctx)
+		if err != nil {
+			errChan <- fmt.Errorf("failed to fetch workspace groups: %w", err)
+			return
+		}
+		c.cache.workspaceGroups = groups
+	}()
+
 	// Wait for all fetches to complete
 	wg.Wait()
 	close(errChan)
@@ -749,7 +795,7 @@ func (c *Client) refreshCacheIfNeeded(ctx context.Context) error {
 	return nil
 }
 
-// fetchUsers makes the actual API call to get users
+// fetchUsers retrieves and caches the list of users
 func (c *Client) fetchUsers(ctx context.Context) ([]User, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", baseURL+"/team/users", nil)
 	if err != nil {
@@ -775,7 +821,7 @@ func (c *Client) fetchUsers(ctx context.Context) ([]User, error) {
 	return users, nil
 }
 
-// fetchWorkspaces makes the actual API call to get workspaces
+// fetchWorkspaces retrieves and caches the list of workspaces
 func (c *Client) fetchWorkspaces(ctx context.Context) ([]Workspace, error) {
 	query := WorkspaceSearchQuery{
 		Sort: WorkspaceSearchSort{
@@ -820,7 +866,7 @@ func (c *Client) fetchWorkspaces(ctx context.Context) ([]Workspace, error) {
 	return result.Items, nil
 }
 
-// fetchFields makes the actual API call to get fields
+// fetchFields retrieves and caches the list of fields
 func (c *Client) fetchFields(ctx context.Context) ([]FieldWithWorkspaceNames, error) {
 	// Create a map of workspace IDs to names for quick lookup
 	workspaceMap := make(map[string]string)
