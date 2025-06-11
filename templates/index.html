@@ -5,16 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airfocus API Tools</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link rel="stylesheet" href="/static/css/styles.css">
     
-    <!-- Load modular JavaScript files -->
-    <script src="/static/js/utils.js"></script>
-    <script src="/static/js/workspace.js"></script>
-    <script src="/static/js/user.js"></script>
-    <script src="/static/js/field.js"></script>
-    <script src="/static/js/license.js"></script>
-    <script src="/static/js/table.js"></script>
-    <script src="/static/js/app.js"></script>
+    <style>
+        .htmx-indicator {
+            display: none;
+        }
+        .htmx-request .htmx-indicator {
+            display: inline;
+        }
+        .htmx-request .htmx-default {
+            display: none;
+        }
+    </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8">
@@ -39,97 +43,78 @@
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold text-gray-700">License Information</h2>
-                <button id="getLicenseInfoBtn" onclick="LicenseManager.getLicenseInfo()" 
+                <button hx-post="/api/team/license/htmx" 
+                        hx-target="#licenseInfoResult" 
+                        hx-swap="innerHTML"
+                        hx-indicator="#licenseLoadingIndicator"
                         class="btn">
-                    Refresh
+                    <span class="htmx-indicator" id="licenseLoadingIndicator">
+                        Loading...
+                    </span>
+                    <span class="htmx-default">
+                        Refresh
+                    </span>
                 </button>
             </div>
             <div id="licenseInfoResult" class="mt-4">
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                    <div class="bg-white p-4 rounded-lg shadow text-center">
-                        <div class="text-2xl font-bold text-blue-600" id="totalLicenses">-</div>
-                        <div class="text-sm text-gray-600">Total Licenses</div>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow text-center">
-                        <div class="text-2xl font-bold text-green-600" id="usedLicenses">-</div>
-                        <div class="text-sm text-gray-600">Used Licenses</div>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow text-center">
-                        <div class="text-2xl font-bold text-yellow-600" id="freeLicenses">-</div>
-                        <div class="text-sm text-gray-600">Free Licenses</div>
-                    </div>
-                </div>
-
-                <!-- Role Statistics -->
-                <div class="mt-6">
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Role Statistics</h3>
-                    <div id="roleStatsResult" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div class="bg-white p-4 rounded-lg shadow text-center">
-                            <div class="text-2xl font-bold text-blue-600" id="totalRoleUsers">-</div>
-                            <div class="text-sm text-gray-600">Total Users</div>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg shadow text-center">
-                            <div class="text-2xl font-bold text-purple-600" id="totalAdmins">-</div>
-                            <div class="text-sm text-gray-600">Admins</div>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg shadow text-center">
-                            <div class="text-2xl font-bold text-green-600" id="totalEditors">-</div>
-                            <div class="text-sm text-gray-600">Editors</div>
-                        </div>
-                        <div class="bg-white p-4 rounded-lg shadow text-center">
-                            <div class="text-2xl font-bold text-yellow-600" id="totalContributors">-</div>
-                            <div class="text-sm text-gray-600">Contributors</div>
-                        </div>
-                    </div>
-                </div>
+                <p class="text-gray-500">Click "Refresh" to load license information.</p>
             </div>
         </div>
 
         <!-- Workspace Selection Section -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">Select Workspace</h2>
-            <button id="getWorkspacesBtn" onclick="WorkspaceManager.getWorkspaces()" class="btn mt-2">
-                Load Workspaces
+            <button hx-post="/api/workspaces/htmx" 
+                    hx-target="#workspaceSelectionResult" 
+                    hx-swap="innerHTML"
+                    hx-indicator="#workspaceLoadingIndicator"
+                    class="btn mt-2">
+                <span class="htmx-indicator" id="workspaceLoadingIndicator">
+                    Loading workspaces...
+                </span>
+                <span class="htmx-default">
+                    Load Workspaces
+                </span>
             </button>
-            <br><br>
-            <div class="flex flex-col md:flex-row gap-4 mb-4 items-end">
-                <div class="flex-1 w-full">
-                    <label for="workspaceSelect" class="block text-sm font-medium text-gray-700">Choose from list:</label>
-                    <select id="workspaceSelect" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Select a workspace...</option>
-                    </select>
-                </div>
+            
+            <div id="workspaceSelectionResult" class="mt-4">
+                <select id="workspaceSelect"
+                        name="workspace_select"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        hx-post="/api/workspace/id/htmx"
+                        hx-target="#workspaceResult"
+                        hx-swap="innerHTML"
+                        hx-trigger="change from:body"
+                        hx-include="#apiKey, #workspaceSelect"
+                        hx-indicator="#workspaceIDLoadingIndicator"
+                        hx-on:change="htmx.trigger('#workspaceUsersTrigger', 'change')">
+                    <option value="">Select a workspace...</option>
+                    <!-- Options will be populated by HTMX -->
+                </select>
             </div>
-            <div class="mb-4">
-                <label for="workspaceName" class="block text-sm font-medium text-gray-700">Or enter workspace name:</label>
-                <input type="text" 
-                       id="workspaceName" 
-                       placeholder="Enter workspace name (e.g., 'My Product')" 
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <p class="mt-1 text-sm text-gray-500">Workspace names can contain spaces and will be matched partially.</p>
 
-            </div>
+            <!-- Hidden trigger for workspace users -->
+            <input type="hidden" id="workspaceUsersTrigger"
+                   hx-post="/api/workspace/users/htmx"
+                   hx-target="#usersResult"
+                   hx-swap="innerHTML"
+                   hx-trigger="change from:body"
+                   hx-include="#apiKey, #workspaceSelect"
+                   hx-indicator="#workspaceUsersLoadingIndicator">
 
             <input type="hidden" id="currentWorkspaceId">
 
-            <!-- Content moved from Selected Workspace Actions Section -->
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">Workspace Actions</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Get Workspace ID Sub-section -->
                 <div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Workspace Id</h3>
-                    
-                    <div id="workspaceResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                    <div id="workspaceResult" class="mt-4 p-4 bg-gray-50 rounded-md">
                         <pre class="text-sm text-gray-700"></pre>
                     </div>
                 </div>
 
                 <!-- Get Workspace Users Sub-section -->
                 <div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Workspace Users</h3>
-                    
-                    <div id="usersResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                    <div id="usersResult" class="mt-4 p-4 bg-gray-50 rounded-md">
                         <div id="usersTreeView" class="mt-4 space-y-4">
                             <!-- Tree view will be populated here -->
                         </div>
@@ -139,74 +124,43 @@
         </div>
 
         <!-- User Management Section -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <div class="bg-white rounded-lg shadow-md p-6">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">User Management</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- List Users with Roles -->
+            <div class="space-y-6">
+                <!-- Get Users with Roles -->
                 <div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">List Users with Roles</h3>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Get Users with Roles</h3>
                     <div class="space-y-4">
-                        <button id="getUsersWithRolesBtn" onclick="UserManager.getUsersWithRoles()" 
+                        <!-- HTMX-powered Get Users button -->
+                        <button hx-post="/api/users/roles/htmx" 
+                                hx-target="#userManagementResult" 
+                                hx-swap="innerHTML"
+                                hx-indicator="#usersLoadingIndicator"
                                 class="btn">
-                            Get Users
+                            <span class="htmx-indicator" id="usersLoadingIndicator">
+                                Loading users...
+                            </span>
+                            <span class="htmx-default">
+                                Get Users
+                            </span>
                         </button>
-                        <div id="usersWithRolesResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
-                            <div class="mb-4">
-                                <select id="userSelect" 
-                                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="">Select a user to view their workspaces...</option>
-                                </select>
-                            </div>
-                            <button id="getUserWorkspacesBtn" onclick="UserManager.getUserWorkspaces()" 
-                                    class="btn">
-                                Get User's Workspaces
-                            </button>
+                        
+                        <!-- User results area -->
+                        <div id="userManagementResult" class="mt-4 p-4 bg-gray-50 rounded-md">
+                            <!-- Users will be loaded here -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Get User Workspaces -->
+                <!-- User Workspaces Tree View -->
                 <div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Get User Workspaces</h3>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">User Workspaces & Permissions</h3>
                     <div class="space-y-4">
-                        <div id="userWorkspacesResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
-                            <!-- User workspaces table content -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Get Contributors -->
-                <div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Get Contributors</h3>
-                    <div class="space-y-4">
-                        <button id="getContributorsBtn" onclick="UserManager.getContributors()" 
-                                class="btn">
-                            Get Contributors
-                        </button>
-                        <div id="contributorsResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="TableManager.sortTable('name')">
-                                                Name
-                                                <span id="nameSortIcon" class="ml-1">↕</span>
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="TableManager.sortTable('dateJoined')">
-                                                Date Joined
-                                                <span id="dateJoinedSortIcon" class="ml-1">↕</span>
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="TableManager.sortTable('lastUpdated')">
-                                                Last Updated
-                                                <span id="lastUpdatedSortIcon" class="ml-1">↕</span>
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="contributorsTableBody" class="bg-white divide-y divide-gray-200">
-                                        <!-- Table rows will be inserted here -->
-                                    </tbody>
-                                </table>
-                            </div>
+                        <p class="text-sm text-gray-600">First get users above, then select a user to view their workspace permissions.</p>
+                        
+                        <!-- User workspaces result area -->
+                        <div id="userWorkspacesResult" class="mt-4 p-4 bg-gray-50 rounded-md">
+                            <!-- User workspaces tree will be loaded here -->
                         </div>
                     </div>
                 </div>
@@ -221,22 +175,23 @@
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-3">List Fields</h3>
                     <div class="space-y-4">
-                        <button id="getFieldsBtn" onclick="FieldManager.getFields()" 
+                        <!-- HTMX-powered Get Fields button -->
+                        <button hx-post="/api/fields/htmx" 
+                                hx-target="#fieldsResult" 
+                                hx-swap="innerHTML"
+                                hx-indicator="#fieldsLoadingIndicator"
                                 class="btn">
-                            Get Fields
+                            <span class="htmx-indicator" id="fieldsLoadingIndicator">
+                                Loading fields...
+                            </span>
+                            <span class="htmx-default">
+                                Get Fields
+                            </span>
                         </button>
-                        <div id="fieldsResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
-                            <div class="mb-4">
-                                <select id="fieldSelect" 
-                                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="">Select a field...</option>
-                                </select>
-                            </div>
-                            <input type="text" 
-                                   id="fieldName" 
-                                   placeholder="Or enter field name (spaces are allowed)" 
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <p class="mt-1 text-sm text-gray-500">Field names can contain spaces and will be matched partially</p>
+                        
+                        <!-- HTMX target for field results -->
+                        <div id="fieldsResult" class="mt-4 p-4 bg-gray-50 rounded-md">
+                            <!-- Field results will be loaded here via HTMX -->
                         </div>
                     </div>
                 </div>
@@ -245,17 +200,64 @@
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-3">Get Field ID</h3>
                     <div class="space-y-4">
-                        <button id="getFieldIDBtn" onclick="FieldManager.getFieldID()" 
-                                class="btn">
-                            Get Field ID
-                        </button>
-                        <div id="fieldResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
-                            <pre class="text-sm text-gray-700"></pre>
+                        <form hx-post="/api/field/id/htmx" 
+                              hx-target="#fieldResult" 
+                              hx-swap="innerHTML"
+                              hx-indicator="#fieldIDLoadingIndicator">
+                            <div class="flex gap-2">
+                                <input type="text" 
+                                       name="field_name"
+                                       placeholder="Enter field name" 
+                                       class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                       required>
+                                <button type="submit" class="btn">
+                                    <span class="htmx-indicator" id="fieldIDLoadingIndicator">
+                                        Searching...
+                                    </span>
+                                    <span class="htmx-default">
+                                        Get Field ID
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                        <div id="fieldResult" class="mt-4">
+                            <p class="text-gray-500">Enter a field name and click "Get Field ID" to search.</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+        // Global HTMX configuration to include API key in all requests
+        document.addEventListener('htmx:configRequest', function(evt) {
+            const apiKey = document.getElementById('apiKey').value;
+            if (apiKey) {
+                // Add API key to all HTMX requests
+                evt.detail.parameters['api_key'] = apiKey;
+            }
+        });
+
+        // API key persistence
+        document.addEventListener('DOMContentLoaded', function() {
+            // Restore saved API key
+            const storedApiKey = localStorage.getItem('airfocus_api_key');
+            if (storedApiKey) {
+                const apiKeyInput = document.getElementById('apiKey');
+                if (apiKeyInput) {
+                    apiKeyInput.value = storedApiKey;
+                }
+            }
+
+            // Set up API key input event listener
+            const apiKeyInput = document.getElementById('apiKey');
+            if (apiKeyInput) {
+                apiKeyInput.addEventListener('input', (event) => {
+                    localStorage.setItem('airfocus_api_key', event.target.value);
+                });
+            }
+        });
+    </script>
 </body>
 </html>
