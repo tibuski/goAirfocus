@@ -308,9 +308,11 @@ type FieldListResponse struct {
 
 // handleListFields handles POST requests to list all fields
 func (s *Server) handleListFields(w http.ResponseWriter, r *http.Request) {
+	log.Printf("handleListFields called - Method: %s", r.Method)
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
+		log.Printf("Method not allowed: %s", r.Method)
 		json.NewEncoder(w).Encode(FieldListResponse{
 			Status: "error",
 			Error:  "Method not allowed",
@@ -320,6 +322,7 @@ func (s *Server) handleListFields(w http.ResponseWriter, r *http.Request) {
 
 	apiKey := r.FormValue("api_key")
 	if apiKey == "" {
+		log.Printf("API key is missing")
 		json.NewEncoder(w).Encode(FieldListResponse{
 			Status: "error",
 			Error:  "API key is required",
@@ -327,15 +330,19 @@ func (s *Server) handleListFields(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Creating Airfocus client and calling ListFields")
 	client := airfocus.NewClient(apiKey)
 	fields, err := client.ListFields(r.Context())
 	if err != nil {
+		log.Printf("Error listing fields: %v", err)
 		json.NewEncoder(w).Encode(FieldListResponse{
 			Status: "error",
 			Error:  fmt.Sprintf("Failed to list fields: %v", err),
 		})
 		return
 	}
+
+	log.Printf("Successfully retrieved %d fields", len(fields))
 
 	// Convert fields to a format suitable for JSON response
 	responseFields := make([]FieldAPIResponse, len(fields))
@@ -357,6 +364,7 @@ func (s *Server) handleListFields(w http.ResponseWriter, r *http.Request) {
 		Data:   responseFields,
 	}
 
+	log.Printf("Sending response with %d fields", len(responseFields))
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("Error encoding response: %v", err)
 	}

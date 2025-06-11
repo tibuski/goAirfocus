@@ -6,6 +6,15 @@
     <title>Airfocus API Tools</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/styles.css">
+    
+    <!-- Load modular JavaScript files -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/workspace.js"></script>
+    <script src="/static/js/user.js"></script>
+    <script src="/static/js/field.js"></script>
+    <script src="/static/js/license.js"></script>
+    <script src="/static/js/table.js"></script>
+    <script src="/static/js/app.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8">
@@ -30,7 +39,7 @@
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold text-gray-700">License Information</h2>
-                <button id="getLicenseInfoBtn" onclick="getLicenseInfo()" 
+                <button id="getLicenseInfoBtn" onclick="LicenseManager.getLicenseInfo()" 
                         class="btn">
                     Refresh
                 </button>
@@ -79,7 +88,7 @@
         <!-- Workspace Selection Section -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">Select Workspace</h2>
-            <button id="getWorkspacesBtn" onclick="getWorkspaces()" class="btn mt-2">
+            <button id="getWorkspacesBtn" onclick="WorkspaceManager.getWorkspaces()" class="btn mt-2">
                 Load Workspaces
             </button>
             <br><br>
@@ -87,8 +96,7 @@
                 <div class="flex-1 w-full">
                     <label for="workspaceSelect" class="block text-sm font-medium text-gray-700">Choose from list:</label>
                     <select id="workspaceSelect" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onchange="document.getElementById('workspaceName').value = ''; document.getElementById('currentWorkspaceId').value = ''; if (this.value) { getWorkspaceID(); getWorkspaceUsers(); }">
+                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <option value="">Select a workspace...</option>
                     </select>
                 </div>
@@ -98,8 +106,7 @@
                 <input type="text" 
                        id="workspaceName" 
                        placeholder="Enter workspace name (e.g., 'My Product')" 
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       oninput="document.getElementById('workspaceSelect').value = ''; document.getElementById('currentWorkspaceId').value = '';">
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="mt-1 text-sm text-gray-500">Workspace names can contain spaces and will be matched partially.</p>
 
             </div>
@@ -139,7 +146,7 @@
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-3">List Users with Roles</h3>
                     <div class="space-y-4">
-                        <button id="getUsersWithRolesBtn" onclick="getUsersWithRoles()" 
+                        <button id="getUsersWithRolesBtn" onclick="UserManager.getUsersWithRoles()" 
                                 class="btn">
                             Get Users
                         </button>
@@ -150,7 +157,7 @@
                                     <option value="">Select a user to view their workspaces...</option>
                                 </select>
                             </div>
-                            <button id="getUserWorkspacesBtn" onclick="getUserWorkspaces()" 
+                            <button id="getUserWorkspacesBtn" onclick="UserManager.getUserWorkspaces()" 
                                     class="btn">
                                 Get User's Workspaces
                             </button>
@@ -172,7 +179,7 @@
                 <div>
                     <h3 class="text-lg font-medium text-gray-700 mb-3">Get Contributors</h3>
                     <div class="space-y-4">
-                        <button id="getContributorsBtn" onclick="getContributors()" 
+                        <button id="getContributorsBtn" onclick="UserManager.getContributors()" 
                                 class="btn">
                             Get Contributors
                         </button>
@@ -181,15 +188,15 @@
                                 <table class="min-w-full divide-y divide-gray-200">
                                     <thead class="bg-gray-50">
                                         <tr>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable('name')">
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="TableManager.sortTable('name')">
                                                 Name
                                                 <span id="nameSortIcon" class="ml-1">↕</span>
                                             </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable('dateJoined')">
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="TableManager.sortTable('dateJoined')">
                                                 Date Joined
                                                 <span id="dateJoinedSortIcon" class="ml-1">↕</span>
                                             </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable('lastUpdated')">
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="TableManager.sortTable('lastUpdated')">
                                                 Last Updated
                                                 <span id="lastUpdatedSortIcon" class="ml-1">↕</span>
                                             </th>
@@ -206,935 +213,49 @@
             </div>
         </div>
 
-        <!-- Field ID Tool -->
+        <!-- Field Management Section -->
         <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">Get Field ID</h2>
-            <div class="flex gap-4 mb-4">
-                <button id="getFieldsBtn" onclick="getFields()" 
-                        class="btn">
-                    Get Fields
-                </button>
-            </div>
-            <div class="flex gap-4 mb-4">
-                <div class="flex-1">
-                    <select id="fieldSelect" 
-                            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-                            onchange="document.getElementById('fieldName').value = '';">
-                        <option value="">Select a field...</option>
-                    </select>
-                    <input type="text" 
-                           id="fieldName" 
-                           placeholder="Or enter field name (spaces are allowed)" 
-                           class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                           oninput="document.getElementById('fieldSelect').value = '';">
-                    <p class="mt-1 text-sm text-gray-500">Field names can contain spaces and will be matched partially</p>
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Field Management</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- List Fields -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">List Fields</h3>
+                    <div class="space-y-4">
+                        <button id="getFieldsBtn" onclick="FieldManager.getFields()" 
+                                class="btn">
+                            Get Fields
+                        </button>
+                        <div id="fieldsResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                            <div class="mb-4">
+                                <select id="fieldSelect" 
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Select a field...</option>
+                                </select>
+                            </div>
+                            <input type="text" 
+                                   id="fieldName" 
+                                   placeholder="Or enter field name (spaces are allowed)" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <p class="mt-1 text-sm text-gray-500">Field names can contain spaces and will be matched partially</p>
+                        </div>
+                    </div>
                 </div>
-                <button id="getFieldIDBtn" onclick="getFieldID()" 
-                        class="btn">
-                    Get ID
-                </button>
-            </div>
-            <div id="fieldResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
-                <pre class="text-sm text-gray-700"></pre>
+
+                <!-- Get Field ID -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-3">Get Field ID</h3>
+                    <div class="space-y-4">
+                        <button id="getFieldIDBtn" onclick="FieldManager.getFieldID()" 
+                                class="btn">
+                            Get Field ID
+                        </button>
+                        <div id="fieldResult" class="mt-4 p-4 bg-gray-50 rounded-md hidden">
+                            <pre class="text-sm text-gray-700"></pre>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-    <script>
-        // --- Utility Functions ---
-
-        /**
-         * Displays a message in the message area with the specified type
-         * @param {string} message - The message to display
-         * @param {string} type - The type of message ('info', 'error', or 'success')
-         */
-        function displayMessage(message, type = 'info') {
-            const messageArea = document.getElementById('messageArea');
-            messageArea.textContent = message;
-            messageArea.classList.remove('hidden', 'bg-red-100', 'text-red-800', 'bg-green-100', 'text-green-800', 'bg-blue-100', 'text-blue-800');
-            if (type === 'error') {
-                messageArea.classList.add('bg-red-100', 'text-red-800');
-            } else if (type === 'success') {
-                messageArea.classList.add('bg-green-100', 'text-green-800');
-            } else { // info
-                messageArea.classList.add('bg-blue-100', 'text-blue-800');
-            }
-            // Optionally hide after some time
-            setTimeout(() => {
-                messageArea.classList.add('hidden');
-            }, 5000);
-        }
-
-        /**
-         * Sets the disabled state of a button (currently a no-op)
-         * @param {string} buttonId - The ID of the button
-         * @param {boolean} disabled - Whether the button should be disabled
-         */
-        function setButtonState(buttonId, disabled) {
-            // No-op function - does nothing
-            return;
-        }
-
-        // --- API Key Handling ---
-
-        /**
-         * Event listener for DOM content loaded - restores saved API key
-         */
-        document.addEventListener('DOMContentLoaded', () => {
-            const storedApiKey = localStorage.getItem('airfocus_api_key');
-            if (storedApiKey) {
-                document.getElementById('apiKey').value = storedApiKey;
-            }
-        });
-
-        /**
-         * Event listener for API key input - saves the API key to localStorage
-         */
-        document.getElementById('apiKey').addEventListener('input', (event) => {
-            localStorage.setItem('airfocus_api_key', event.target.value);
-        });
-
-        // --- Workspace Functions ---
-
-        /**
-         * Retrieves and populates the list of workspaces
-         * Updates the workspace select dropdown with the fetched workspaces
-         */
-        async function getWorkspaces() {
-            const apiKey = document.getElementById('apiKey').value;
-            if (!apiKey) {
-                displayMessage('Please enter your API key', 'error');
-                return;
-            }
-
-            const select = document.getElementById('workspaceSelect');
-            select.innerHTML = '<option value="">Loading workspaces...</option>';
-            setButtonState('getWorkspacesBtn', true);
-
-            try {
-                const response = await fetch('/api/workspaces', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        api_key: apiKey
-                    })
-                });
-
-                const data = await response.json();
-                if (data.status === 'success') {
-                    select.innerHTML = '<option value="">Select a workspace...</option>';
-                    if (data.data && data.data.length > 0) {
-                        data.data.forEach(workspace => {
-                            const option = document.createElement('option');
-                            option.value = workspace.id; // Store ID as value
-                            option.textContent = workspace.alias ? 
-                                `${workspace.name} (${workspace.alias})` : 
-                                workspace.name;
-                            select.appendChild(option);
-                        });
-                        displayMessage('Workspaces loaded successfully.', 'success');
-                    } else {
-                        displayMessage('No workspaces found for this API key.', 'info');
-                    }
-                } else {
-                    select.innerHTML = '<option value="">Error loading workspaces</option>';
-                    displayMessage('Failed to load workspaces: ' + data.error, 'error');
-                }
-            } catch (error) {
-                select.innerHTML = '<option value="">Error loading workspaces</option>';
-                displayMessage('Error fetching workspaces: ' + error.message, 'error');
-            } finally {
-                setButtonState('getWorkspacesBtn', false);
-            }
-        }
-
-        /**
-         * Retrieves a workspace ID by name
-         * Updates the workspace ID input and triggers user list fetch if successful
-         */
-        async function getWorkspaceID() {
-            const apiKey = document.getElementById('apiKey').value;
-            if (!apiKey) {
-                displayMessage('Please enter your API key', 'error');
-                return;
-            }
-
-            const select = document.getElementById('workspaceSelect');
-            const workspaceNameInput = document.getElementById('workspaceName');
-            let workspaceIdentifier; // This could be name or ID
-
-            if (select.value) { // If a workspace is selected from the dropdown
-                // Use the text content (name) for the backend endpoint that expects name
-                workspaceIdentifier = select.options[select.selectedIndex].textContent.split(' (')[0]; 
-            } else if (workspaceNameInput.value.trim()) { // If text is entered
-                workspaceIdentifier = workspaceNameInput.value.trim();
-            } else {
-                displayMessage('Please select a workspace or enter a workspace name', 'error');
-                return;
-            }
-            
-            if (workspaceIdentifier.length < 2) {
-                displayMessage('Workspace name must be at least 2 characters long', 'error');
-                return;
-            }
-
-            const resultDiv = document.getElementById('workspaceResult');
-            const resultPre = resultDiv.querySelector('pre');
-            resultDiv.classList.remove('hidden');
-            setButtonState('getWorkspaceIDBtn', true);
-
-            try {
-                const response = await fetch('/api/workspace/id', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        api_key: apiKey,
-                        workspace_name: workspaceIdentifier // Always send name for this endpoint
-                    })
-                });
-
-                const data = await response.json();
-                resultPre.textContent = JSON.stringify(data, null, 2);
-                
-                if (data.status === 'success') {
-                    document.getElementById('currentWorkspaceId').value = data.id; // Store the retrieved ID
-                    resultDiv.classList.remove('bg-red-50');
-                    resultDiv.classList.add('bg-green-50');
-                    displayMessage('Workspace ID retrieved successfully.', 'success');
-                } else {
-                    document.getElementById('currentWorkspaceId').value = ''; // Clear stored ID on error
-                    resultDiv.classList.remove('bg-green-50');
-                    resultDiv.classList.add('bg-red-50');
-                    displayMessage('Failed to get Workspace ID: ' + data.error, 'error');
-                }
-            } catch (error) {
-                document.getElementById('currentWorkspaceId').value = ''; // Clear stored ID on error
-                resultPre.textContent = `Error: ${error.message}`;
-                resultDiv.classList.remove('bg-green-50');
-                resultDiv.classList.add('bg-red-50');
-                displayMessage('Error fetching Workspace ID: ' + error.message, 'error');
-            } finally {
-                setButtonState('getWorkspaceIDBtn', false);
-            }
-        }
-
-        /**
-         * Retrieves and displays users for the current workspace
-         * Groups users by their permission level and updates the UI
-         */
-        async function getWorkspaceUsers() {
-            const apiKey = document.getElementById('apiKey').value;
-            const workspaceSelect = document.getElementById('workspaceSelect');
-            const workspaceNameInput = document.getElementById('workspaceName');
-            const currentWorkspaceId = document.getElementById('currentWorkspaceId').value;
-
-            let params = new URLSearchParams();
-            params.append('api_key', apiKey);
-
-            if (!apiKey) {
-                displayMessage('Please enter your API key', 'error');
-                return;
-            }
-
-            // Determine which identifier to send to the backend
-            if (currentWorkspaceId) {
-                params.append('workspace_id', currentWorkspaceId);
-            } else if (workspaceSelect.value) {
-                params.append('workspace_id', workspaceSelect.value);
-            } else if (workspaceNameInput.value.trim()) {
-                params.append('workspace_name', workspaceNameInput.value.trim());
-            } else {
-                displayMessage('Please select a workspace or enter a workspace name first.', 'error');
-                return;
-            }
-
-            const resultDiv = document.getElementById('usersResult');
-            const treeViewDiv = document.getElementById('usersTreeView');
-            resultDiv.classList.remove('hidden');
-            setButtonState('getWorkspaceUsersBtn', true);
-
-            try {
-                const response = await fetch('/api/workspace/users', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: params
-                });
-
-                const data = await response.json();
-                if (data.status === 'success') {
-                    // Debug logging
-                    console.log('Received workspace users data:', data.data.users);
-
-                    // Group users by permission level
-                    const usersByPermission = {
-                        'full': [],
-                        'write': [],
-                        'comment': [],
-                        'read': []
-                    };
-
-                    // Sort users into their respective permission groups
-                    if (data.data.users && data.data.users.length > 0) {
-                        data.data.users.forEach(user => {
-                            // Debug logging for each user
-                            console.log('Processing user:', user.fullName, 'with permission:', user.permission);
-                            
-                            const permission = user.permission.toLowerCase();
-                            if (usersByPermission[permission]) {
-                                usersByPermission[permission].push(user);
-                            } else {
-                                console.log('Unknown permission level:', permission, 'for user:', user.fullName);
-                            }
-                        });
-                    }
-
-                    // Debug logging for grouped users
-                    console.log('Grouped users by permission:', usersByPermission);
-
-                    // Generate tree view HTML
-                    let treeViewHtml = '';
-                    const permissionOrder = ['full', 'write', 'comment', 'read'];
-                    
-                    permissionOrder.forEach(permission => {
-                        const users = usersByPermission[permission];
-                        if (users && users.length > 0) {
-                            const permissionDisplay = permission.charAt(0).toUpperCase() + permission.slice(1);
-                            const displayPermissionName = (permission === 'read') ? 'Read-Only' : permissionDisplay;
-                            treeViewHtml += `
-                                <div class="mb-4">
-                                    <h4 class="font-semibold text-gray-700 mb-2">${displayPermissionName} (${users.length})</h4>
-                                    <ul class="list-disc pl-5 space-y-1">
-                                        ${users.sort((a, b) => a.fullName.localeCompare(b.fullName)).map(user => `
-                                            <li class="flex items-center gap-2">
-                                                <span class="font-medium">${user.fullName}</span>
-                                                ${user.email ? `<span class="text-sm text-gray-500">(${user.email})</span>` : ''}
-                                            </li>
-                                        `).join('')}
-                                    </ul>
-                                </div>
-                            `;
-                        }
-                    });
-
-                    treeViewDiv.innerHTML = treeViewHtml || '<p class="text-gray-500 text-center py-4">No users found in this workspace.</p>';
-                    displayMessage('User statistics retrieved successfully.', 'success');
-                    resultDiv.classList.remove('bg-red-50');
-                    resultDiv.classList.add('bg-green-50');
-                } else {
-                    // Reset statistics cards and tree view on error
-                    treeViewDiv.innerHTML = '';
-                    resultDiv.classList.remove('bg-green-50');
-                    resultDiv.classList.add('bg-red-50');
-                    displayMessage('Failed to get user statistics: ' + data.error, 'error');
-                }
-            } catch (error) {
-                // Reset statistics cards and tree view on error
-                treeViewDiv.innerHTML = '';
-                resultDiv.classList.remove('bg-green-50');
-                resultDiv.classList.add('bg-red-50');
-                displayMessage('Error fetching user statistics: ' + error.message, 'error');
-            } finally {
-                setButtonState('getWorkspaceUsersBtn', false);
-            }
-        }
-
-        // --- User Management Functions ---
-
-        /**
-         * Retrieves and displays all users with their roles
-         * Updates the user select dropdown with the fetched users
-         */
-        async function getUsersWithRoles() {
-            const apiKey = document.getElementById('apiKey').value;
-            if (!apiKey) {
-                displayMessage('Please enter your API key', 'error');
-                return;
-            }
-
-            const resultDiv = document.getElementById('usersWithRolesResult');
-            const userSelect = document.getElementById('userSelect');
-            resultDiv.classList.remove('hidden');
-            setButtonState('getUsersWithRolesBtn', true);
-
-            try {
-                const response = await fetch('/api/users/roles', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        api_key: apiKey
-                    })
-                });
-
-                const data = await response.json();
-                if (data.status === 'success') {
-                    if (data.data && data.data.length > 0) {
-                        // Clear and populate the user select dropdown
-                        userSelect.innerHTML = '<option value="">Select a user to view their workspaces...</option>';
-                        data.data.forEach(user => {
-                            const option = document.createElement('option');
-                            option.value = user.userId;
-                            option.textContent = `${user.fullName} (${user.role})`;
-                            userSelect.appendChild(option);
-                        });
-                        displayMessage('Users loaded successfully.', 'success');
-                        resultDiv.classList.remove('bg-red-50');
-                        resultDiv.classList.add('bg-green-50');
-                    } else {
-                        userSelect.innerHTML = '<option value="">No users found</option>';
-                        displayMessage('No users found.', 'info');
-                        resultDiv.classList.remove('bg-red-50');
-                        resultDiv.classList.add('bg-green-50');
-                    }
-                } else {
-                    userSelect.innerHTML = '<option value="">Error loading users</option>';
-                    resultDiv.classList.remove('bg-green-50');
-                    resultDiv.classList.add('bg-red-50');
-                    displayMessage('Failed to get users: ' + data.error, 'error');
-                }
-            } catch (error) {
-                userSelect.innerHTML = '<option value="">Error loading users</option>';
-                resultDiv.classList.remove('bg-green-50');
-                resultDiv.classList.add('bg-red-50');
-                displayMessage('Error fetching users: ' + error.message, 'error');
-            } finally {
-                setButtonState('getUsersWithRolesBtn', false);
-            }
-        }
-
-        /**
-         * Retrieves and displays all workspaces a selected user has access to
-         * Shows the workspaces in a formatted list with permission levels
-         */
-        async function getUserWorkspaces() {
-            const apiKey = document.getElementById('apiKey').value;
-            if (!apiKey) {
-                displayMessage('Please enter your API key', 'error');
-                return;
-            }
-
-            const userSelect = document.getElementById('userSelect');
-            const selectedUserId = userSelect.value;
-            if (!selectedUserId) {
-                displayMessage('Please select a user first', 'error');
-                return;
-            }
-
-            const resultDiv = document.getElementById('userWorkspacesResult');
-            resultDiv.classList.remove('hidden');
-            setButtonState('getUserWorkspacesBtn', true);
-
-            try {
-                const response = await fetch('/api/user/workspaces', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        api_key: apiKey,
-                        user_id: selectedUserId
-                    })
-                });
-
-                const data = await response.json();
-                if (data.status === 'success') {
-                    if (data.data && data.data.length > 0) {
-                        // Group workspaces by their group path
-                        const groupedWorkspaces = {};
-                        data.data.forEach(access => {
-                            const groupPath = access.groupPath || 'Ungrouped Workspaces';
-                            if (!groupedWorkspaces[groupPath]) {
-                                groupedWorkspaces[groupPath] = [];
-                            }
-                            groupedWorkspaces[groupPath].push(access);
-                        });
-
-                        // Sort group paths alphabetically
-                        const sortedGroupPaths = Object.keys(groupedWorkspaces).sort((a, b) => {
-                            if (a === 'Ungrouped Workspaces') return 1;
-                            if (b === 'Ungrouped Workspaces') return -1;
-                            return a.localeCompare(b);
-                        });
-
-                        let workspaceListHtml = '';
-                        sortedGroupPaths.forEach(groupPath => {
-                            const workspaces = groupedWorkspaces[groupPath];
-                            // Sort workspaces within each group by name
-                            workspaces.sort((a, b) => a.workspaceName.localeCompare(b.workspaceName));
-
-                            workspaceListHtml += `<div class="mb-4">`;
-                            workspaceListHtml += `<h4 class="font-semibold text-gray-700 mb-2">${groupPath}</h4>`;
-                            workspaceListHtml += `<ul class="list-disc pl-5 space-y-1">`;
-                            workspaces.forEach(access => {
-                                workspaceListHtml += `<li class="flex items-center gap-2">`;
-                                workspaceListHtml += `<span class="font-medium">${access.workspaceName}</span>`;
-                                workspaceListHtml += `<span class="text-sm px-2 py-0.5 rounded-full 
-                                    ${access.permission === 'full' ? 'bg-green-100 text-green-800' : 
-                                      access.permission === 'write' ? 'bg-blue-100 text-blue-800' : 
-                                      access.permission === 'read' ? 'bg-yellow-100 text-yellow-800' : 
-                                      'bg-gray-100 text-gray-800'}">
-                                    ${access.permission}
-                                </span>`;
-                                workspaceListHtml += `</li>`;
-                            });
-                            workspaceListHtml += `</ul></div>`;
-                        });
-
-                        resultDiv.innerHTML = workspaceListHtml;
-                        displayMessage('User workspaces retrieved successfully.', 'success');
-                        resultDiv.classList.remove('bg-red-50');
-                        resultDiv.classList.add('bg-green-50');
-                    } else {
-                        resultDiv.innerHTML = '<div class="text-center text-gray-500">No workspaces found for this user</div>';
-                        displayMessage('No workspaces found for this user.', 'info');
-                        resultDiv.classList.remove('bg-red-50');
-                        resultDiv.classList.add('bg-green-50');
-                    }
-                } else {
-                    resultDiv.innerHTML = '<div class="text-center text-red-500">Error loading user workspaces</div>';
-                    resultDiv.classList.remove('bg-green-50');
-                    resultDiv.classList.add('bg-red-50');
-                    displayMessage('Failed to get user workspaces: ' + data.error, 'error');
-                }
-            } catch (error) {
-                resultDiv.innerHTML = '<div class="text-center text-red-500">Error loading user workspaces</div>';
-                resultDiv.classList.remove('bg-green-50');
-                resultDiv.classList.add('bg-red-50');
-                displayMessage('Error fetching user workspaces: ' + error.message, 'error');
-            } finally {
-                setButtonState('getUserWorkspacesBtn', false);
-            }
-        }
-
-        // Helper function to get color class based on permission level
-        function getPermissionColor(permission) {
-            switch (permission.toLowerCase()) {
-                case 'full':
-                    return 'bg-purple-100 text-purple-800';
-                case 'write':
-                    return 'bg-blue-100 text-blue-800';
-                case 'read':
-                    return 'bg-green-100 text-green-800';
-                case 'comment':
-                    return 'bg-yellow-100 text-yellow-800';
-                default:
-                    return 'bg-gray-100 text-gray-800';
-            }
-        }
-
-        // --- Field Management Functions ---
-
-        /**
-         * Retrieves and populates the list of fields
-         * Updates the field select dropdown with the fetched fields
-         */
-        async function getFields() {
-            const apiKey = document.getElementById('apiKey').value;
-            if (!apiKey) {
-                displayMessage('Please enter your API key', 'error');
-                return;
-            }
-
-            const select = document.getElementById('fieldSelect');
-            select.innerHTML = '<option value="">Loading fields...</option>';
-            setButtonState('getFieldsBtn', true);
-
-            try {
-                const response = await fetch('/api/fields', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        api_key: apiKey
-                    })
-                });
-
-                const data = await response.json();
-                if (data.status === 'success') {
-                    // Filter out fields created on 2025-03-20 with empty updatedAt
-                    // This is a specific filter; remove if not generally needed.
-                    data.data = data.data.filter(field => {
-                        const shouldFilter = field.createdAt && 
-                            field.createdAt.startsWith('2025-03-20') && 
-                            (!field.updatedAt || field.updatedAt === '');
-                        return !shouldFilter;
-                    });
-
-                    select.innerHTML = '<option value="">Select a field...</option>';
-                    if (data.data && data.data.length > 0) {
-                        data.data.forEach(field => {
-                            const option = document.createElement('option');
-                            option.value = field.name;
-                            let displayText = field.name;
-                            
-                            if (field.isTeamField) {
-                                displayText += ' (Team Field)';
-                                if (field.workspaceNames && field.workspaceNames.length > 0) {
-                                    displayText += ` - Used in ${field.workspaceNames.length} workspaces`;
-                                }
-                            } else {
-                                // For non-team fields, show workspace names in parentheses
-                                if (field.workspaceNames && field.workspaceNames.length > 0) {
-                                    displayText += ` (${field.workspaceNames.join(', ')})`;
-                                }
-                            }
-                            
-                            option.textContent = displayText;
-                            select.appendChild(option);
-                        });
-                        displayMessage('Fields loaded successfully.', 'success');
-                    } else {
-                        displayMessage('No fields found for this API key.', 'info');
-                    }
-                } else {
-                    select.innerHTML = '<option value="">Error loading fields</option>';
-                    displayMessage('Failed to load fields: ' + data.error, 'error');
-                }
-            } catch (error) {
-                select.innerHTML = '<option value="">Error loading fields</option>';
-                displayMessage('Error fetching fields: ' + error.message, 'error');
-            } finally {
-                setButtonState('getFieldsBtn', false);
-            }
-        }
-
-        /**
-         * Retrieves a field ID by name
-         * Updates the field result display with the field details
-         */
-        async function getFieldID() {
-            const apiKey = document.getElementById('apiKey').value;
-            if (!apiKey) {
-                displayMessage('Please enter your API key', 'error');
-                return;
-            }
-
-            const select = document.getElementById('fieldSelect');
-            const fieldNameInput = document.getElementById('fieldName');
-            const fieldName = select.value || fieldNameInput.value.trim();
-            
-            if (!fieldName) {
-                displayMessage('Please select a field or enter a field name', 'error');
-                return;
-            }
-            if (fieldName.length < 2) {
-                displayMessage('Field name must be at least 2 characters long', 'error');
-                return;
-            }
-
-            const resultDiv = document.getElementById('fieldResult');
-            const resultPre = resultDiv.querySelector('pre');
-            resultDiv.classList.remove('hidden');
-            setButtonState('getFieldIDBtn', true);
-
-            try {
-                const response = await fetch('/api/field/id', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        api_key: apiKey,
-                        field_name: fieldName
-                    })
-                });
-
-                const data = await response.json();
-                let resultText = JSON.stringify(data, null, 2);
-                
-                if (data.status === 'success' && data.field && !data.field.isTeamField) {
-                    const field = data.field;
-                    if (field.workspaceNames && field.workspaceNames.length > 0) {
-                        resultText += '\n\nWorkspaces: ' + field.workspaceNames.join(', ');
-                    }
-                }
-                
-                resultPre.textContent = resultText;
-                
-                if (data.status === 'success') {
-                    resultDiv.classList.remove('bg-red-50');
-                    resultDiv.classList.add('bg-green-50');
-                    displayMessage('Field ID retrieved successfully.', 'success');
-                } else {
-                    resultDiv.classList.remove('bg-green-50');
-                    resultDiv.classList.add('bg-red-50');
-                    displayMessage('Failed to get Field ID: ' + data.error, 'error');
-                }
-            } catch (error) {
-                resultPre.textContent = `Error: ${error.message}`;
-                resultDiv.classList.remove('bg-green-50');
-                resultDiv.classList.add('bg-red-50');
-                displayMessage('Error fetching Field ID: ' + error.message, 'error');
-            } finally {
-                setButtonState('getFieldIDBtn', false);
-            }
-        }
-
-        // --- License Information Functions ---
-
-        /**
-         * Retrieves and displays team license information
-         * Updates the license statistics and role counts in the UI
-         */
-        async function getLicenseInfo() {
-            const apiKey = document.getElementById('apiKey').value;
-            if (!apiKey) {
-                displayMessage('Please enter your API key', 'error');
-                return;
-            }
-
-            setButtonState('getLicenseInfoBtn', true);
-
-            try {
-                // Get license information
-                const licenseResponse = await fetch('/api/team/license', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        api_key: apiKey
-                    })
-                });
-
-                const licenseData = await licenseResponse.json();
-                if (licenseData.status === 'success') {
-                    const seats = licenseData.data.state.seats.any;
-                    const total = seats.total;
-                    const used = seats.used;
-                    const free = seats.free;
-
-                    // Update the license cards
-                    document.getElementById('totalLicenses').textContent = total;
-                    document.getElementById('usedLicenses').textContent = used;
-                    document.getElementById('freeLicenses').textContent = free;
-                } else {
-                    // Reset license cards on error
-                    document.getElementById('totalLicenses').textContent = '-';
-                    document.getElementById('usedLicenses').textContent = '-';
-                    document.getElementById('freeLicenses').textContent = '-';
-                    displayMessage('Failed to get license information: ' + (licenseData.error || 'Unknown error'), 'error');
-                    return;
-                }
-
-                // Get role statistics
-                const rolesResponse = await fetch('/api/users/roles', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        api_key: apiKey
-                    })
-                });
-
-                const rolesData = await rolesResponse.json();
-                if (rolesData.status === 'success') {
-                    if (rolesData.data && rolesData.data.length > 0) {
-                        // Count users by role
-                        const stats = {
-                            total: rolesData.data.length,
-                            admin: 0,
-                            editor: 0,
-                            contributor: 0
-                        };
-
-                        rolesData.data.forEach(user => {
-                            const role = user.role.toLowerCase();
-                            if (role === 'admin') stats.admin++;
-                            else if (role === 'editor') stats.editor++;
-                            else if (role === 'contributor') stats.contributor++;
-                        });
-
-                        // Update the statistics cards
-                        document.getElementById('totalRoleUsers').textContent = stats.total;
-                        document.getElementById('totalAdmins').textContent = stats.admin;
-                        document.getElementById('totalEditors').textContent = stats.editor;
-                        document.getElementById('totalContributors').textContent = stats.contributor;
-                    } else {
-                        // Reset statistics cards
-                        document.getElementById('totalRoleUsers').textContent = '0';
-                        document.getElementById('totalAdmins').textContent = '0';
-                        document.getElementById('totalEditors').textContent = '0';
-                        document.getElementById('totalContributors').textContent = '0';
-                    }
-                } else {
-                    // Reset statistics cards on error
-                    document.getElementById('totalRoleUsers').textContent = '-';
-                    document.getElementById('totalAdmins').textContent = '-';
-                    document.getElementById('totalEditors').textContent = '-';
-                    document.getElementById('totalContributors').textContent = '-';
-                    displayMessage('Failed to get role statistics: ' + rolesData.error, 'error');
-                }
-
-                displayMessage('Information updated successfully.', 'success');
-            } catch (error) {
-                // Reset statistics cards on error
-                document.getElementById('totalRoleUsers').textContent = '-';
-                document.getElementById('totalAdmins').textContent = '-';
-                document.getElementById('totalEditors').textContent = '-';
-                document.getElementById('totalContributors').textContent = '-';
-                displayMessage('Error fetching information: ' + error.message, 'error');
-            } finally {
-                setButtonState('getLicenseInfoBtn', false);
-            }
-        }
-
-        /**
-         * Retrieves and displays all contributors in a table
-         */
-        let currentSort = {
-            column: 'name',
-            direction: 'asc'
-        };
-
-        function updateSortIcons(column) {
-            // Reset all icons
-            document.getElementById('nameSortIcon').textContent = '↕';
-            document.getElementById('dateJoinedSortIcon').textContent = '↕';
-            document.getElementById('lastUpdatedSortIcon').textContent = '↕';
-
-            // Set the active sort icon
-            const icon = document.getElementById(column + 'SortIcon');
-            icon.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
-        }
-
-        function sortTable(column) {
-            const tableBody = document.getElementById('contributorsTableBody');
-            const rows = Array.from(tableBody.getElementsByTagName('tr'));
-
-            // Toggle sort direction if clicking the same column
-            if (currentSort.column === column) {
-                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-            } else {
-                currentSort.column = column;
-                currentSort.direction = 'asc';
-            }
-
-            // Update sort icons
-            updateSortIcons(column);
-
-            // Sort the rows
-            rows.sort((a, b) => {
-                let aValue, bValue;
-
-                switch (column) {
-                    case 'name':
-                        aValue = a.cells[0].textContent.trim();
-                        bValue = b.cells[0].textContent.trim();
-                        break;
-                    case 'dateJoined':
-                        aValue = new Date(a.cells[1].textContent.trim());
-                        bValue = new Date(b.cells[1].textContent.trim());
-                        break;
-                    case 'lastUpdated':
-                        aValue = new Date(a.cells[2].textContent.trim());
-                        bValue = new Date(b.cells[2].textContent.trim());
-                        break;
-                }
-
-                if (currentSort.direction === 'asc') {
-                    return aValue > bValue ? 1 : -1;
-                } else {
-                    return aValue < bValue ? 1 : -1;
-                }
-            });
-
-            // Reorder the rows in the table
-            rows.forEach(row => tableBody.appendChild(row));
-        }
-
-        async function getContributors() {
-            const apiKey = document.getElementById('apiKey').value;
-            if (!apiKey) {
-                displayMessage('Please enter your API key', 'error');
-                return;
-            }
-
-            const resultDiv = document.getElementById('contributorsResult');
-            const tableBody = document.getElementById('contributorsTableBody');
-            resultDiv.classList.remove('hidden');
-            setButtonState('getContributorsBtn', true);
-
-            try {
-                const response = await fetch('/api/contributors', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        api_key: apiKey
-                    })
-                });
-
-                const data = await response.json();
-                if (data.status === 'success') {
-                    if (data.data && data.data.length > 0) {
-                        // Helper function to format date
-                        const formatDate = (dateStr) => {
-                            if (!dateStr) return '-';
-                            const date = new Date(dateStr);
-                            return date.toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            });
-                        };
-
-                        // Generate table rows
-                        const tableRows = data.data.map(user => `
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900">${user.fullName}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-500">${formatDate(user.createdAt)}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm text-gray-500">${formatDate(user.updatedAt)}</div>
-                                </td>
-                            </tr>
-                        `).join('');
-
-                        tableBody.innerHTML = tableRows;
-                        
-                        // Apply the current sort
-                        sortTable(currentSort.column);
-                        
-                        displayMessage('Contributors loaded successfully.', 'success');
-                        resultDiv.classList.remove('bg-red-50');
-                        resultDiv.classList.add('bg-green-50');
-                    } else {
-                        tableBody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">No contributors found</td></tr>';
-                        displayMessage('No contributors found.', 'info');
-                        resultDiv.classList.remove('bg-red-50');
-                        resultDiv.classList.add('bg-green-50');
-                    }
-                } else {
-                    tableBody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-red-500">Error loading contributors</td></tr>';
-                    resultDiv.classList.remove('bg-green-50');
-                    resultDiv.classList.add('bg-red-50');
-                    displayMessage('Failed to get contributors: ' + data.error, 'error');
-                }
-            } catch (error) {
-                tableBody.innerHTML = '<tr><td colspan="3" class="px-6 py-4 text-center text-red-500">Error loading contributors</td></tr>';
-                resultDiv.classList.remove('bg-green-50');
-                resultDiv.classList.add('bg-red-50');
-                displayMessage('Error fetching contributors: ' + error.message, 'error');
-            } finally {
-                setButtonState('getContributorsBtn', false);
-            }
-        }
-    </script>
 </body>
 </html>

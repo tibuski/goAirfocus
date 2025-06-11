@@ -870,12 +870,23 @@ func (c *Client) fetchWorkspaces(ctx context.Context) ([]Workspace, error) {
 func (c *Client) fetchFields(ctx context.Context) ([]FieldWithWorkspaceNames, error) {
 	// Create a map of workspace IDs to names for quick lookup
 	workspaceMap := make(map[string]string)
-	for _, ws := range c.cache.workspaces {
-		workspaceMap[ws.ID] = ws.Name
+
+	// Check if we have workspaces in cache, if not fetch them directly
+	if len(c.cache.workspaces) == 0 {
+		workspaces, err := c.fetchWorkspaces(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch workspaces for field mapping: %w", err)
+		}
+		for _, ws := range workspaces {
+			workspaceMap[ws.ID] = ws.Name
+		}
+	} else {
+		for _, ws := range c.cache.workspaces {
+			workspaceMap[ws.ID] = ws.Name
+		}
 	}
 
 	query := FieldSearchQuery{
-		IsTeamField:  true,
 		WorkspaceIDs: nil,
 	}
 
