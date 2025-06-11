@@ -12,9 +12,20 @@ A Go application that provides tools to interact with the Airfocus API, specific
   - Lists all users and allows selection to view their details and associated workspaces.
   - Displays user workspaces grouped by permission with color-coded badges.
 - **Field Management**:
-  - Lists all fields (via "Get Fields" button).
-  - Gets Field ID (via form submission).
+  - Lists all fields (via "Load Fields" button).
+  - Provides a dropdown to select and view detailed field information.
+  - Displays field details including ID, name, description, type, and workspace usage.
 - **License Information**: Accurately displays license role statistics, showing actual used seats for Admin, Editor, and Contributor roles.
+
+## Architecture
+
+This application follows a clean, HTMX-first architecture:
+
+- **Backend**: Pure Go with standard library HTTP server
+- **Frontend**: HTMX for dynamic interactions, Tailwind CSS for styling
+- **Templates**: Go HTML templates with partials for modularity
+- **API**: All endpoints return HTML fragments for seamless HTMX integration
+- **Caching**: Intelligent caching of API responses to improve performance
 
 ## Deployment
 
@@ -106,7 +117,7 @@ docker-compose down
 3. **License Information**: Click "Refresh" to view your team's license details and role statistics.
 4. **Workspace Management**: Click "Load Workspaces" to populate the dropdown. A success message will indicate the number of workspaces loaded. Then, select a workspace from the dropdown to automatically view its ID and grouped users.
 5. **User Management**: Click "Load Users" to populate the dropdown. A success message will indicate the number of users loaded. Select a user from the dropdown to view their details and associated workspaces.
-6. **Field Management**: Click "Get Fields" to list all available fields. To get a specific field's ID, enter its name in the input field and click "Get Field ID".
+6. **Field Management**: Click "Load Fields" to populate the dropdown. A success message will indicate the number of fields loaded. Select a field from the dropdown to view its detailed information including ID, description, type, and workspace usage.
 
 ### User and Workspace Access Display
 
@@ -115,6 +126,14 @@ Both user and workspace access displays now provide a clean, grouped view by per
 - Items are categorized under `Full`, `Write`, `Comment`, and `Read` permissions.
 - Each permission group displays the count of items and a bulleted list of their names.
 - Color-coded left borders and permission badges enhance visual clarity.
+
+### Field Details Display
+
+Field management now provides comprehensive field information:
+
+- **Field Details**: Shows ID, name, description, type, team field status, and timestamps.
+- **Workspace Usage**: Displays the count of workspaces where the field is used and lists all workspace names.
+- **Team Field Indicator**: Clearly identifies team-wide fields with additional workspace count information.
 
 ## API Key
 

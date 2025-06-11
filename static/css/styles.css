@@ -326,4 +326,12 @@ a:hover {
 .bg-accent-lighter { background-color: var(--accent-lighter); }
 .bg-accent-darker { background-color: var(--accent-darker); }
 .bg-light { background-color: var(--light-gray); }
-.bg-white { background-color: var(--white); } 
+.bg-white { background-color: var(--white); }
+
+.content-block {
+    background-color: #f0fdf4; /* Tailwind's bg-green-50 */
+    border: 1px solid #dcfce7; /* Tailwind's border-green-300 */
+    border-radius: 0.5rem; /* Tailwind's rounded-lg */
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* Tailwind's shadow */
+    padding: 1rem; /* Tailwind's p-4 */
+} 

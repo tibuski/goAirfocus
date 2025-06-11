@@ -32,7 +32,6 @@ func NewServer() (*Server, error) {
 	tmpl, err := template.New("").Funcs(template.FuncMap{
 		"getPermissionColorClass": getPermissionColorClass,
 		"join":                    strings.Join,
-		"title":                   strings.Title,
 		"permToString":            permToString,
 		"mul": func(a, b int) int {
 			return a * b
@@ -57,508 +56,6 @@ func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error executing template: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
-}
-
-// WorkspaceIDResponse represents the API response for workspace ID lookup
-type WorkspaceIDResponse struct {
-	Status string `json:"status"`          // Status of the request ("success" or "error")
-	ID     string `json:"id,omitempty"`    // The workspace ID if found
-	Alias  string `json:"alias,omitempty"` // The workspace alias if found
-	Error  string `json:"error,omitempty"` // Error message if the request failed
-}
-
-// handleGetWorkspaceID handles POST requests to get a workspace ID by name
-func (s *Server) handleGetWorkspaceID(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method != http.MethodPost {
-		json.NewEncoder(w).Encode(WorkspaceIDResponse{
-			Status: "error",
-			Error:  "Method not allowed",
-		})
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	workspaceName := r.FormValue("workspace_name")
-
-	if apiKey == "" || workspaceName == "" {
-		json.NewEncoder(w).Encode(WorkspaceIDResponse{
-			Status: "error",
-			Error:  "API key and workspace name are required",
-		})
-		return
-	}
-
-	client := airfocus.NewClient(apiKey)
-	result, err := client.GetWorkspaceIDByName(r.Context(), workspaceName)
-
-	response := WorkspaceIDResponse{}
-	if err != nil {
-		response.Status = "error"
-		response.Error = err.Error()
-	} else {
-		response.Status = "success"
-		response.ID = result.ID
-		response.Alias = result.Alias
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-		// Note: Can't send http.Error after writing to header/body,
-		// but logging is still important.
-	}
-}
-
-// WorkspaceUsersResponse defines the structure for the API response for workspace users
-type WorkspaceUsersResponse struct {
-	Status string             `json:"status"`          // Status of the request ("success" or "error")
-	Data   WorkspaceUsersData `json:"data,omitempty"`  // Contains user statistics and list of users
-	Error  string             `json:"error,omitempty"` // Error message if the request failed
-}
-
-// WorkspaceUsersData combines user statistics and the list of users for a workspace
-type WorkspaceUsersData struct {
-	airfocus.WorkspaceUserStats                          // Embedded user statistics
-	Users                       []airfocus.WorkspaceUser `json:"users,omitempty"` // List of users with their permissions
-}
-
-// handleGetWorkspaceUsers handles POST requests to get user statistics and list of users for a workspace
-func (s *Server) handleGetWorkspaceUsers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method != http.MethodPost {
-		json.NewEncoder(w).Encode(WorkspaceUsersResponse{
-			Status: "error",
-			Error:  "Method not allowed",
-		})
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	workspaceID := r.FormValue("workspace_id")     // Can be empty
-	workspaceName := r.FormValue("workspace_name") // Can be empty
-
-	if apiKey == "" {
-		json.NewEncoder(w).Encode(WorkspaceUsersResponse{
-			Status: "error",
-			Error:  "API key is required",
-		})
-		return
-	}
-
-	client := airfocus.NewClient(apiKey)
-
-	// If workspaceID is not provided, try to resolve it from workspaceName
-	if workspaceID == "" && workspaceName != "" {
-		result, err := client.GetWorkspaceIDByName(r.Context(), workspaceName)
-		if err != nil {
-			json.NewEncoder(w).Encode(WorkspaceUsersResponse{
-				Status: "error",
-				Error:  fmt.Sprintf("Failed to resolve workspace ID from name '%s': %v", workspaceName, err),
-			})
-			return
-		}
-		workspaceID = result.ID
-	}
-
-	// If after all attempts, workspaceID is still empty, return an error
-	if workspaceID == "" {
-		json.NewEncoder(w).Encode(WorkspaceUsersResponse{
-			Status: "error",
-			Error:  "Workspace ID or name is required",
-		})
-		return
-	}
-
-	// Fetch both statistics and the list of users
-	stats, err := client.GetWorkspaceUserStats(r.Context(), workspaceID)
-	if err != nil {
-		json.NewEncoder(w).Encode(WorkspaceUsersResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-
-	users, err := client.GetWorkspaceUsers(r.Context(), workspaceID)
-	if err != nil {
-		json.NewEncoder(w).Encode(WorkspaceUsersResponse{
-			Status: "error",
-			Error:  err.Error(),
-		})
-		return
-	}
-
-	response := WorkspaceUsersResponse{}
-	response.Status = "success"
-	response.Data = WorkspaceUsersData{
-		WorkspaceUserStats: stats,
-		Users:              users,
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
-}
-
-// FieldIDResponse represents the API response for field ID lookup
-type FieldIDResponse struct {
-	Status string `json:"status"`          // Status of the request ("success" or "error")
-	ID     string `json:"id,omitempty"`    // The field ID if found
-	Error  string `json:"error,omitempty"` // Error message if the request failed
-	Field  *struct {
-		Name           string   `json:"name"`                     // Field name
-		Description    string   `json:"description"`              // Field description
-		Type           string   `json:"type"`                     // Field type
-		IsTeamField    bool     `json:"isTeamField"`              // Whether this is a team-wide field
-		WorkspaceNames []string `json:"workspaceNames,omitempty"` // List of workspace names where this field is used
-	} `json:"field,omitempty"`
-}
-
-// handleGetFieldID handles POST requests to get a field ID by name
-func (s *Server) handleGetFieldID(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method != http.MethodPost {
-		json.NewEncoder(w).Encode(FieldIDResponse{
-			Status: "error",
-			Error:  "Method not allowed",
-		})
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	if apiKey == "" {
-		json.NewEncoder(w).Encode(FieldIDResponse{
-			Status: "error",
-			Error:  "API key is required",
-		})
-		return
-	}
-
-	fieldName := r.FormValue("field_name")
-	if fieldName == "" {
-		json.NewEncoder(w).Encode(FieldIDResponse{
-			Status: "error",
-			Error:  "Field name is required",
-		})
-		return
-	}
-
-	client := airfocus.NewClient(apiKey)
-	fields, err := client.ListFields(r.Context())
-	if err != nil {
-		json.NewEncoder(w).Encode(FieldIDResponse{
-			Status: "error",
-			Error:  fmt.Sprintf("Failed to list fields: %v", err),
-		})
-		return
-	}
-
-	// Find the field by name (case-insensitive)
-	var foundField *airfocus.FieldWithWorkspaceNames
-	for i, field := range fields {
-		if strings.EqualFold(field.Name, fieldName) {
-			foundField = &fields[i]
-			break
-		}
-	}
-
-	if foundField == nil {
-		json.NewEncoder(w).Encode(FieldIDResponse{
-			Status: "error",
-			Error:  fmt.Sprintf("No field found with name: %s", fieldName),
-		})
-		return
-	}
-
-	response := FieldIDResponse{
-		Status: "success",
-		ID:     foundField.ID,
-		Field: &struct {
-			Name           string   `json:"name"`
-			Description    string   `json:"description"`
-			Type           string   `json:"type"`
-			IsTeamField    bool     `json:"isTeamField"`
-			WorkspaceNames []string `json:"workspaceNames,omitempty"`
-		}{
-			Name:           foundField.Name,
-			Description:    foundField.Description,
-			Type:           foundField.Type,
-			IsTeamField:    foundField.IsTeamField,
-			WorkspaceNames: foundField.WorkspaceNames,
-		},
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
-}
-
-// FieldAPIResponse represents a field in the API response
-type FieldAPIResponse struct {
-	ID             string   `json:"id"`                       // Unique identifier for the field
-	Name           string   `json:"name"`                     // Field name
-	Description    string   `json:"description"`              // Field description
-	Type           string   `json:"type"`                     // Field type
-	CreatedAt      string   `json:"createdAt"`                // Creation timestamp
-	UpdatedAt      string   `json:"updatedAt"`                // Last update timestamp
-	IsTeamField    bool     `json:"isTeamField"`              // Whether this is a team-wide field
-	WorkspaceNames []string `json:"workspaceNames,omitempty"` // List of workspace names where this field is used
-}
-
-// FieldListResponse represents the API response for listing fields
-type FieldListResponse struct {
-	Status string             `json:"status"`          // Status of the request ("success" or "error")
-	Data   []FieldAPIResponse `json:"data,omitempty"`  // List of fields
-	Error  string             `json:"error,omitempty"` // Error message if the request failed
-}
-
-// handleListFields handles POST requests to list all fields
-func (s *Server) handleListFields(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleListFields called - Method: %s", r.Method)
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method != http.MethodPost {
-		log.Printf("Method not allowed: %s", r.Method)
-		json.NewEncoder(w).Encode(FieldListResponse{
-			Status: "error",
-			Error:  "Method not allowed",
-		})
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	if apiKey == "" {
-		log.Printf("API key is missing")
-		json.NewEncoder(w).Encode(FieldListResponse{
-			Status: "error",
-			Error:  "API key is required",
-		})
-		return
-	}
-
-	log.Printf("Creating Airfocus client and calling ListFields")
-	client := airfocus.NewClient(apiKey)
-	fields, err := client.ListFields(r.Context())
-	if err != nil {
-		log.Printf("Error listing fields: %v", err)
-		json.NewEncoder(w).Encode(FieldListResponse{
-			Status: "error",
-			Error:  fmt.Sprintf("Failed to list fields: %v", err),
-		})
-		return
-	}
-
-	log.Printf("Successfully retrieved %d fields", len(fields))
-
-	// Convert fields to a format suitable for JSON response
-	responseFields := make([]FieldAPIResponse, len(fields))
-	for i, field := range fields {
-		responseFields[i] = FieldAPIResponse{
-			ID:             field.ID,
-			Name:           field.Name,
-			Description:    field.Description,
-			Type:           field.Type,
-			CreatedAt:      field.CreatedAt,
-			UpdatedAt:      field.UpdatedAt,
-			IsTeamField:    field.IsTeamField,
-			WorkspaceNames: field.WorkspaceNames,
-		}
-	}
-
-	response := FieldListResponse{
-		Status: "success",
-		Data:   responseFields,
-	}
-
-	log.Printf("Sending response with %d fields", len(responseFields))
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
-}
-
-// handleListFieldsHTMX handles POST requests to list all fields and return HTML
-func (s *Server) handleListFieldsHTMX(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleListFieldsHTMX called - Method: %s", r.Method)
-	w.Header().Set("Content-Type", "text/html")
-
-	if r.Method != http.MethodPost {
-		log.Printf("Method not allowed: %s", r.Method)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	if apiKey == "" {
-		log.Printf("API key is missing")
-		http.Error(w, "API key is required", http.StatusBadRequest)
-		return
-	}
-
-	log.Printf("Creating Airfocus client and calling ListFields for HTMX")
-	client := airfocus.NewClient(apiKey)
-	fields, err := client.ListFields(r.Context())
-	if err != nil {
-		log.Printf("Error listing fields: %v", err)
-		http.Error(w, fmt.Sprintf("Failed to list fields: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Successfully retrieved %d fields for HTMX", len(fields))
-
-	// Filter out fields created on 2025-03-20 with empty updatedAt
-	filteredFields := make([]airfocus.FieldWithWorkspaceNames, 0)
-	for _, field := range fields {
-		shouldFilter := field.CreatedAt != "" &&
-			strings.HasPrefix(field.CreatedAt, "2025-03-20") &&
-			(field.UpdatedAt == "" || field.UpdatedAt == "")
-		if !shouldFilter {
-			filteredFields = append(filteredFields, field)
-		}
-	}
-
-	// Generate HTML for the field dropdown
-	var html strings.Builder
-	html.WriteString(`<div class="mb-4">
-		<label for="fieldSelect" class="block text-sm font-medium text-gray-700 mb-2">Choose from list:</label>
-		<select id="fieldSelect" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-			<option value="">Select a field...</option>`)
-
-	if len(filteredFields) > 0 {
-		for _, field := range filteredFields {
-			displayText := field.Name
-			if field.IsTeamField {
-				displayText += " (Team Field)"
-				if len(field.WorkspaceNames) > 0 {
-					displayText += fmt.Sprintf(" - Used in %d workspaces", len(field.WorkspaceNames))
-				}
-			} else {
-				if len(field.WorkspaceNames) > 0 {
-					displayText += fmt.Sprintf(" (%s)", strings.Join(field.WorkspaceNames, ", "))
-				}
-			}
-			html.WriteString(fmt.Sprintf(`<option value="%s">%s</option>`, field.Name, displayText))
-		}
-		html.WriteString(fmt.Sprintf(`</select>
-		<p class="mt-2 text-sm text-green-600">✓ Loaded %d fields successfully</p>`, len(filteredFields)))
-	} else {
-		html.WriteString(`</select>
-		<p class="mt-2 text-sm text-gray-500">No fields found for this API key.</p>`)
-	}
-
-	html.WriteString(`</div>
-	<div class="mb-4">
-		<label for="fieldName" class="block text-sm font-medium text-gray-700 mb-2">Or enter field name:</label>
-		<input type="text" 
-			   id="fieldName" 
-			   placeholder="Enter field name (spaces are allowed)" 
-			   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-		<p class="mt-1 text-sm text-gray-500">Field names can contain spaces and will be matched partially</p>
-	</div>`)
-
-	w.Write([]byte(html.String()))
-}
-
-// UsersWithRolesResponse represents the API response for listing users with their roles
-type UsersWithRolesResponse struct {
-	Status string                  `json:"status"`          // Status of the request ("success" or "error")
-	Data   []airfocus.UserWithRole `json:"data,omitempty"`  // List of users with their roles
-	Error  string                  `json:"error,omitempty"` // Error message if the request failed
-}
-
-// UserWorkspacesResponse represents the API response for listing a user's workspace access
-type UserWorkspacesResponse struct {
-	Status string                         `json:"status"`          // Status of the request ("success" or "error")
-	Data   []airfocus.UserWorkspaceAccess `json:"data,omitempty"`  // List of workspaces the user has access to
-	Error  string                         `json:"error,omitempty"` // Error message if the request failed
-}
-
-// handleGetUsersWithRoles handles POST requests to get a list of users with their roles
-func (s *Server) handleGetUsersWithRoles(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method != http.MethodPost {
-		json.NewEncoder(w).Encode(UsersWithRolesResponse{
-			Status: "error",
-			Error:  "Method not allowed",
-		})
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	if apiKey == "" {
-		json.NewEncoder(w).Encode(UsersWithRolesResponse{
-			Status: "error",
-			Error:  "API key is required",
-		})
-		return
-	}
-
-	client := airfocus.NewClient(apiKey)
-	users, err := client.FormatUsersWithRoles(r.Context())
-
-	response := UsersWithRolesResponse{}
-	if err != nil {
-		response.Status = "error"
-		response.Error = err.Error()
-	} else {
-		response.Status = "success"
-		response.Data = users
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
-}
-
-// handleGetUserWorkspaces handles requests to get all workspaces a specific user has access to.
-func (s *Server) handleGetUserWorkspaces(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method != http.MethodPost {
-		json.NewEncoder(w).Encode(UserWorkspacesResponse{
-			Status: "error",
-			Error:  "Method not allowed",
-		})
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	userID := r.FormValue("user_id")
-
-	if apiKey == "" || userID == "" {
-		http.Error(w, "API key and user ID are required", http.StatusBadRequest)
-		return
-	}
-
-	// Add context with timeout
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second) // Increased timeout slightly
-	defer cancel()
-
-	client := airfocus.NewClient(apiKey)
-
-	// --- ADDED: Refresh the workspace cache before getting user workspaces ---
-	if err := client.RefreshCacheIfNeeded(ctx); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to refresh workspace cache: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Use the client method to get user workspaces
-	// NOTE: The GetUserWorkspaces client method will now read from the cache.
-	userWorkspaces, err := client.GetUserWorkspaces(ctx, userID)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get user workspaces: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Prepare and send the response
-	response := UserWorkspacesResponse{
-		Status: "success",
-		Data:   userWorkspaces,
-	}
-	json.NewEncoder(w).Encode(response)
 }
 
 // TeamLicenseInfo represents the license information for a team
@@ -660,251 +157,6 @@ func handleGetTeamLicense(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	})
-}
-
-// ContributorsResponse represents the API response for listing contributors
-type ContributorsResponse struct {
-	Status string                  `json:"status"`          // Status of the request ("success" or "error")
-	Data   []airfocus.UserWithRole `json:"data,omitempty"`  // List of contributors
-	Error  string                  `json:"error,omitempty"` // Error message if the request failed
-}
-
-// handleGetContributors handles POST requests to get a list of contributors
-func (s *Server) handleGetContributors(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method != http.MethodPost {
-		json.NewEncoder(w).Encode(ContributorsResponse{
-			Status: "error",
-			Error:  "Method not allowed",
-		})
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	if apiKey == "" {
-		json.NewEncoder(w).Encode(ContributorsResponse{
-			Status: "error",
-			Error:  "API key is required",
-		})
-		return
-	}
-
-	client := airfocus.NewClient(apiKey)
-	users, err := client.FormatUsersWithRoles(r.Context())
-
-	response := ContributorsResponse{}
-	if err != nil {
-		response.Status = "error"
-		response.Error = err.Error()
-	} else {
-		// Filter only contributors
-		var contributors []airfocus.UserWithRole
-		for _, user := range users {
-			if strings.ToLower(user.Role) == "contributor" {
-				contributors = append(contributors, user)
-			}
-		}
-		response.Status = "success"
-		response.Data = contributors
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-	}
-}
-
-// handleGetUsersWithRolesHTMX handles POST requests to get users with roles and return HTML
-func (s *Server) handleGetUsersWithRolesHTMX(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleGetUsersWithRolesHTMX called - Method: %s", r.Method)
-	w.Header().Set("Content-Type", "text/html")
-
-	if r.Method != http.MethodPost {
-		log.Printf("Method not allowed: %s", r.Method)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	if apiKey == "" {
-		log.Printf("API key is missing")
-		http.Error(w, "API key is required", http.StatusBadRequest)
-		return
-	}
-
-	log.Printf("Creating Airfocus client and calling FormatUsersWithRoles for HTMX")
-	client := airfocus.NewClient(apiKey)
-	users, err := client.FormatUsersWithRoles(r.Context())
-	if err != nil {
-		log.Printf("Error getting users with roles: %v", err)
-		http.Error(w, fmt.Sprintf("Failed to get users: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Successfully retrieved %d users for HTMX", len(users))
-
-	// Generate HTML for the user dropdown
-	var html strings.Builder
-
-	// User dropdown section
-	html.WriteString(`<div class="mb-4">
-		<label for="userSelect" class="block text-sm font-medium text-gray-700 mb-2">Choose a user to view their workspaces:</label>
-		<select id="userSelect" onchange="loadUserWorkspaces()" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-			<option value="">Select a user...</option>`)
-
-	if len(users) > 0 {
-		for _, user := range users {
-			displayText := fmt.Sprintf("%s (%s)", user.FullName, user.Email)
-			if user.Role != "" {
-				displayText += fmt.Sprintf(" - %s", user.Role)
-			}
-			html.WriteString(fmt.Sprintf(`<option value="%s">%s</option>`, user.UserID, displayText))
-		}
-		html.WriteString(fmt.Sprintf(`</select>
-		<p class="mt-2 text-sm text-green-600">✓ Loaded %d users successfully</p>`, len(users)))
-	} else {
-		html.WriteString(`</select>
-		<p class="mt-2 text-sm text-gray-500">No users found for this API key.</p>`)
-	}
-
-	html.WriteString(`</div>`)
-
-	w.Write([]byte(html.String()))
-}
-
-// handleGetUserWorkspacesHTMX handles POST requests to get user workspaces and return HTML
-func (s *Server) handleGetUserWorkspacesHTMX(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleGetUserWorkspacesHTMX called - Method: %s", r.Method)
-	w.Header().Set("Content-Type", "text/html")
-
-	if r.Method != http.MethodPost {
-		log.Printf("Method not allowed: %s", r.Method)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	userID := r.FormValue("user_id")
-
-	if apiKey == "" || userID == "" {
-		log.Printf("API key or user ID is missing")
-		http.Error(w, "API key and user ID are required", http.StatusBadRequest)
-		return
-	}
-
-	log.Printf("Creating Airfocus client and calling GetUserWorkspaces for HTMX")
-	client := airfocus.NewClient(apiKey)
-
-	// Add context with timeout
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
-	defer cancel()
-
-	// Refresh the workspace cache before getting user workspaces
-	if err := client.RefreshCacheIfNeeded(ctx); err != nil {
-		log.Printf("Failed to refresh workspace cache: %v", err)
-		http.Error(w, fmt.Sprintf("Failed to refresh workspace cache: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	// Get user workspaces
-	userWorkspaces, err := client.GetUserWorkspaces(ctx, userID)
-	if err != nil {
-		log.Printf("Error getting user workspaces: %v", err)
-		http.Error(w, fmt.Sprintf("Failed to get user workspaces: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Successfully retrieved %d workspaces for user %s", len(userWorkspaces), userID)
-
-	// Generate HTML for the user workspaces tree view
-	var html strings.Builder
-
-	if len(userWorkspaces) > 0 {
-		// Group workspaces by group
-		groupMap := make(map[string][]airfocus.UserWorkspaceAccess)
-		ungroupedWorkspaces := []airfocus.UserWorkspaceAccess{}
-
-		for _, workspace := range userWorkspaces {
-			if workspace.GroupName != "" {
-				groupMap[workspace.GroupName] = append(groupMap[workspace.GroupName], workspace)
-			} else {
-				ungroupedWorkspaces = append(ungroupedWorkspaces, workspace)
-			}
-		}
-
-		html.WriteString(fmt.Sprintf(`<h4 class="text-lg font-medium text-gray-700 mb-2">User Workspaces & Permissions (%d workspaces)</h4>
-		<div class="space-y-2 max-h-96 overflow-y-auto">`, len(userWorkspaces)))
-
-		// Display grouped workspaces
-		for groupName, workspaces := range groupMap {
-			html.WriteString(fmt.Sprintf(`<div class="border border-gray-200 rounded-md overflow-hidden">
-				<div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
-					<h5 class="text-sm font-medium text-gray-700 flex items-center">
-						<svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-						</svg>
-						%s
-					</h5>
-				</div>
-				<div class="bg-white">`, groupName))
-
-			for _, workspace := range workspaces {
-				html.WriteString(fmt.Sprintf(`<div class="px-3 py-2 border-b border-gray-100 last:border-b-0 flex items-center justify-between">
-					<div class="flex items-center">
-						<svg class="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-						</svg>
-						<span class="text-sm text-gray-900">%s</span>
-					</div>
-					<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full %s">%s</span>
-				</div>`,
-					workspace.WorkspaceName,
-					getPermissionColorClass(workspace.Permission),
-					workspace.Permission))
-			}
-
-			html.WriteString(`</div>
-			</div>`)
-		}
-
-		// Display ungrouped workspaces
-		if len(ungroupedWorkspaces) > 0 {
-			html.WriteString(`<div class="border border-gray-200 rounded-md overflow-hidden">
-				<div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
-					<h5 class="text-sm font-medium text-gray-700 flex items-center">
-						<svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-						</svg>
-						Ungrouped Workspaces
-					</h5>
-				</div>
-				<div class="bg-white">`)
-
-			for _, workspace := range ungroupedWorkspaces {
-				html.WriteString(fmt.Sprintf(`<div class="px-3 py-2 border-b border-gray-100 last:border-b-0 flex items-center justify-between">
-					<div class="flex items-center">
-						<svg class="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-						</svg>
-						<span class="text-sm text-gray-900">%s</span>
-					</div>
-					<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full %s">%s</span>
-				</div>`,
-					workspace.WorkspaceName,
-					getPermissionColorClass(workspace.Permission),
-					workspace.Permission))
-			}
-
-			html.WriteString(`</div>
-			</div>`)
-		}
-
-		html.WriteString(`</div>`)
-	} else {
-		html.WriteString(`<p class="text-gray-500">No workspaces found for this user.</p>`)
-	}
-
-	w.Write([]byte(html.String()))
 }
 
 // handleGetLicenseInfoHTMX handles POST requests to get license information and return HTML
@@ -1036,6 +288,253 @@ func (s *Server) handleGetLicenseInfoHTMX(w http.ResponseWriter, r *http.Request
 	w.Write([]byte(html.String()))
 }
 
+// handleListFieldsHTMX handles POST requests to list all fields and return HTML
+func (s *Server) handleListFieldsHTMX(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	if apiKey == "" {
+		http.Error(w, "API key is required", http.StatusBadRequest)
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+	fields, err := client.ListFields(r.Context())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to list fields: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Filter out fields created on 2025-03-20 with empty updatedAt
+	filteredFields := make([]airfocus.FieldWithWorkspaceNames, 0)
+	for _, field := range fields {
+		shouldFilter := field.CreatedAt != "" &&
+			strings.HasPrefix(field.CreatedAt, "2025-03-20") &&
+			field.UpdatedAt == ""
+		if !shouldFilter {
+			filteredFields = append(filteredFields, field)
+		}
+	}
+
+	// Generate HTML for the field dropdown
+	var html strings.Builder
+	html.WriteString(`<div class="mb-4">
+		<label for="fieldSelect" class="block text-sm font-medium text-gray-700 mb-2">Choose from list:</label>
+		<select id="fieldSelect" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+			<option value="">Select a field...</option>`)
+
+	if len(filteredFields) > 0 {
+		for _, field := range filteredFields {
+			displayText := field.Name
+			if field.IsTeamField {
+				displayText += " (Team Field)"
+				if len(field.WorkspaceNames) > 0 {
+					displayText += fmt.Sprintf(" - Used in %d workspaces", len(field.WorkspaceNames))
+				}
+			} else {
+				if len(field.WorkspaceNames) > 0 {
+					displayText += fmt.Sprintf(" (%s)", strings.Join(field.WorkspaceNames, ", "))
+				}
+			}
+			html.WriteString(fmt.Sprintf(`<option value="%s">%s</option>`, field.Name, displayText))
+		}
+		html.WriteString(fmt.Sprintf(`</select>
+		<p class="mt-2 text-sm text-green-600">✓ Loaded %d fields successfully</p>`, len(filteredFields)))
+	} else {
+		html.WriteString(`</select>
+		<p class="mt-2 text-sm text-gray-500">No fields found for this API key.</p>`)
+	}
+
+	html.WriteString(`</div>
+	<div class="mb-4">
+		<label for="fieldName" class="block text-sm font-medium text-gray-700 mb-2">Or enter field name:</label>
+		<input type="text" 
+			   id="fieldName" 
+			   placeholder="Enter field name (spaces are allowed)" 
+			   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+		<p class="mt-1 text-sm text-gray-500">Field names can contain spaces and will be matched partially</p>
+	</div>`)
+
+	w.Write([]byte(html.String()))
+}
+
+// handleGetUsersWithRolesHTMX handles POST requests to get users with roles and return HTML
+func (s *Server) handleGetUsersWithRolesHTMX(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	if apiKey == "" {
+		http.Error(w, "API key is required", http.StatusBadRequest)
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+	users, err := client.FormatUsersWithRoles(r.Context())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get users: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate HTML for the user dropdown
+	var html strings.Builder
+
+	// User dropdown section
+	html.WriteString(`<div class="mb-4">
+		<label for="userSelect" class="block text-sm font-medium text-gray-700 mb-2">Choose a user to view their workspaces:</label>
+		<select id="userSelect" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+			<option value="">Select a user...</option>`)
+
+	if len(users) > 0 {
+		for _, user := range users {
+			displayText := fmt.Sprintf("%s (%s)", user.FullName, user.Email)
+			if user.Role != "" {
+				displayText += fmt.Sprintf(" - %s", user.Role)
+			}
+			html.WriteString(fmt.Sprintf(`<option value="%s">%s</option>`, user.UserID, displayText))
+		}
+		html.WriteString(fmt.Sprintf(`</select>
+		<p class="mt-2 text-sm text-green-600">✓ Loaded %d users successfully</p>`, len(users)))
+	} else {
+		html.WriteString(`</select>
+		<p class="mt-2 text-sm text-gray-500">No users found for this API key.</p>`)
+	}
+
+	html.WriteString(`</div>`)
+
+	w.Write([]byte(html.String()))
+}
+
+// handleGetUserWorkspacesHTMX handles POST requests to get user workspaces and return HTML
+func (s *Server) handleGetUserWorkspacesHTMX(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	userID := r.FormValue("user_id")
+
+	if apiKey == "" || userID == "" {
+		http.Error(w, "API key and user ID are required", http.StatusBadRequest)
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+
+	// Add context with timeout
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	// Refresh the workspace cache before getting user workspaces
+	if err := client.RefreshCacheIfNeeded(ctx); err != nil {
+		http.Error(w, fmt.Sprintf("Failed to refresh workspace cache: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Get user workspaces
+	userWorkspaces, err := client.GetUserWorkspaces(ctx, userID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to get user workspaces: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Generate HTML for the user workspaces tree view
+	var html strings.Builder
+
+	if len(userWorkspaces) > 0 {
+		// Group workspaces by group
+		groupMap := make(map[string][]airfocus.UserWorkspaceAccess)
+		ungroupedWorkspaces := []airfocus.UserWorkspaceAccess{}
+
+		for _, workspace := range userWorkspaces {
+			if workspace.GroupName != "" {
+				groupMap[workspace.GroupName] = append(groupMap[workspace.GroupName], workspace)
+			} else {
+				ungroupedWorkspaces = append(ungroupedWorkspaces, workspace)
+			}
+		}
+
+		html.WriteString(fmt.Sprintf(`<h4 class="text-lg font-medium text-gray-700 mb-2">User Workspaces & Permissions (%d workspaces)</h4>
+		<div class="space-y-2 max-h-96 overflow-y-auto">`, len(userWorkspaces)))
+
+		// Display grouped workspaces
+		for groupName, workspaces := range groupMap {
+			html.WriteString(fmt.Sprintf(`<div class="border border-gray-200 rounded-md overflow-hidden">
+				<div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
+					<h5 class="text-sm font-medium text-gray-700 flex items-center">
+						<svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+						</svg>
+						%s
+					</h5>
+				</div>
+				<div class="bg-white">`, groupName))
+
+			for _, workspace := range workspaces {
+				html.WriteString(fmt.Sprintf(`<div class="px-3 py-2 border-b border-gray-100 last:border-b-0 flex items-center justify-between">
+					<div class="flex items-center">
+						<svg class="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+						</svg>
+						<span class="text-sm text-gray-900">%s</span>
+					</div>
+					<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full %s">%s</span>
+				</div>`,
+					workspace.WorkspaceName,
+					getPermissionColorClass(workspace.Permission),
+					workspace.Permission))
+			}
+
+			html.WriteString(`</div>
+			</div>`)
+		}
+
+		// Display ungrouped workspaces
+		if len(ungroupedWorkspaces) > 0 {
+			html.WriteString(`<div class="border border-gray-200 rounded-md overflow-hidden">
+				<div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
+					<h5 class="text-sm font-medium text-gray-700 flex items-center">
+						<svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+						</svg>
+						Ungrouped Workspaces
+					</h5>
+				</div>
+				<div class="bg-white">`)
+
+			for _, workspace := range ungroupedWorkspaces {
+				html.WriteString(fmt.Sprintf(`<div class="px-3 py-2 border-b border-gray-100 last:border-b-0 flex items-center justify-between">
+					<div class="flex items-center">
+						<svg class="w-3 h-3 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+						</svg>
+						<span class="text-sm text-gray-900">%s</span>
+					</div>
+					<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full %s">%s</span>
+				</div>`,
+					workspace.WorkspaceName,
+					getPermissionColorClass(workspace.Permission),
+					workspace.Permission))
+			}
+
+			html.WriteString(`</div>
+			</div>`)
+		}
+
+		html.WriteString(`</div>`)
+	} else {
+		html.WriteString(`<p class="text-gray-500">No workspaces found for this user.</p>`)
+	}
+
+	w.Write([]byte(html.String()))
+}
+
 // handleGetWorkspacesHTMX fetches workspaces and returns HTML for a select dropdown.
 func (s *Server) handleGetWorkspacesHTMX(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -1133,12 +632,8 @@ func (s *Server) handleGetWorkspaceUsersHTMX(w http.ResponseWriter, r *http.Requ
 		groupedUsers[permission] = append(groupedUsers[permission], user)
 	}
 
-	// Sort permissions for consistent display
-	// permissionOrder := []string{"full", "write", "comment", "read"}
-
 	data := map[string]interface{}{
 		"GroupedWorkspaces": groupedUsers,
-		// "PermissionOrder":   permissionOrder,
 	}
 
 	// Render only the partial for workspace users
@@ -1232,14 +727,10 @@ func (s *Server) handleGetUserInfoHTMX(w http.ResponseWriter, r *http.Request) {
 		groupedWorkspaces[permission] = append(groupedWorkspaces[permission], ws)
 	}
 
-	// Sort permissions for consistent display (if still needed for other sections)
-	// permissionOrder := []string{"full", "write", "comment", "read"}
-
 	data := map[string]interface{}{
 		"User":       user,
 		"Workspaces": groupedWorkspaces,  // Renamed from GroupedWorkspaces to avoid confusion if it's not grouped by permission here
 		"UserGroups": hierarchicalGroups, // Pass the hierarchical list of user groups
-		// "PermissionOrder":   permissionOrder,
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "user_details_partial.html", data); err != nil {
@@ -1322,6 +813,173 @@ func buildGroupTree(groups []airfocus.WorkspaceGroup) []HierarchicalGroup {
 	return rootGroups
 }
 
+// handleGetFieldSelectHTMX handles POST requests to get field selection dropdown
+func (s *Server) handleGetFieldSelectHTMX(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	if apiKey == "" {
+		http.Error(w, "API key is required", http.StatusBadRequest)
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+	fields, err := client.ListFields(r.Context())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to list fields: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Debug logging
+	log.Printf("Loaded %d fields from API", len(fields))
+
+	// Filter out fields created on 2025-03-20 with empty updatedAt
+	filteredFields := make([]airfocus.FieldWithWorkspaceNames, 0)
+	for _, field := range fields {
+		shouldFilter := field.CreatedAt != "" &&
+			strings.HasPrefix(field.CreatedAt, "2025-03-20") &&
+			field.UpdatedAt == ""
+		if !shouldFilter {
+			filteredFields = append(filteredFields, field)
+		}
+	}
+
+	// Debug logging
+	log.Printf("After filtering: %d fields", len(filteredFields))
+
+	// Generate HTML for the field dropdown
+	var html strings.Builder
+	html.WriteString(`<div class="mb-4">
+		<label for="fieldSelect" class="block text-sm font-medium text-gray-700 mb-2">Choose a field to view details:</label>
+		<select id="fieldSelect" name="fieldSelect"
+				hx-post="/api/field/info/htmx"
+				hx-target="#fieldDetailsResult"
+				hx-swap="innerHTML"
+				hx-trigger="change"
+				hx-include="#apiKey, #fieldSelect"
+				class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+			<option value="">Select a field...</option>`)
+
+	if len(filteredFields) > 0 {
+		for _, field := range filteredFields {
+			displayText := field.Name
+			if field.IsTeamField {
+				displayText += " (Team Field)"
+				if len(field.WorkspaceNames) > 0 {
+					displayText += fmt.Sprintf(" - Used in %d workspaces", len(field.WorkspaceNames))
+				}
+			} else {
+				if len(field.WorkspaceNames) > 0 {
+					displayText += fmt.Sprintf(" (%s)", strings.Join(field.WorkspaceNames, ", "))
+				}
+			}
+			html.WriteString(fmt.Sprintf(`<option value="%s">%s</option>`, field.Name, displayText))
+		}
+		html.WriteString(fmt.Sprintf(`</select>
+		<p class="mt-2 text-sm text-green-600">✓ Loaded %d fields successfully</p>`, len(filteredFields)))
+	} else {
+		html.WriteString(`</select>
+		<p class="mt-2 text-sm text-gray-500">No fields found for this API key.</p>`)
+	}
+
+	html.WriteString(`</div>`)
+
+	w.Write([]byte(html.String()))
+}
+
+// handleGetFieldInfoHTMX handles POST requests to get field details and renders HTML
+func (s *Server) handleGetFieldInfoHTMX(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	fieldName := r.FormValue("fieldSelect")
+
+	// Debug logging (never log API key)
+	log.Printf("Field info request - Field Name: '%s'", fieldName)
+
+	if apiKey == "" || fieldName == "" {
+		http.Error(w, "API key and field name are required", http.StatusBadRequest)
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+	fields, err := client.ListFields(r.Context())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to fetch fields: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Debug logging
+	log.Printf("Found %d fields total", len(fields))
+
+	// Find the field by name (case-insensitive)
+	var foundField *airfocus.FieldWithWorkspaceNames
+	for _, field := range fields {
+		if strings.EqualFold(field.Name, fieldName) {
+			foundField = &field
+			log.Printf("Found matching field: %s", field.Name)
+			break
+		}
+	}
+
+	if foundField == nil {
+		http.Error(w, fmt.Sprintf("Field '%s' not found", fieldName), http.StatusNotFound)
+		return
+	}
+
+	// Generate HTML for field details
+	var html strings.Builder
+	html.WriteString(fmt.Sprintf(`<!-- Field Details Block -->
+		<div class="content-block h-full">
+			<h3 class="text-xl font-semibold mb-2 text-gray-700">Field Details</h3>
+			<div class="text-gray-700">
+				<p><strong>ID:</strong> %s</p>
+				<p><strong>Name:</strong> %s</p>
+				<p><strong>Description:</strong> %s</p>
+				<p><strong>Type:</strong> %s</p>
+				<p><strong>Team Field:</strong> %t</p>
+				<p><strong>Created At:</strong> %s</p>
+				<p><strong>Updated At:</strong> %s</p>
+			</div>
+		</div>
+
+		<!-- Field Workspaces Block -->
+		<div class="content-block h-full">
+			<h3 class="text-xl font-semibold mb-2 text-gray-700">Used in Workspaces</h3>
+			<div class="space-y-4">`,
+		foundField.ID,
+		foundField.Name,
+		foundField.Description,
+		foundField.Type,
+		foundField.IsTeamField,
+		foundField.CreatedAt,
+		foundField.UpdatedAt))
+
+	if len(foundField.WorkspaceNames) > 0 {
+		html.WriteString(fmt.Sprintf(`<div>
+			<h4 class="text-lg font-medium text-gray-700 mb-2">Workspace Count: <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">%d</span></h4>
+			<ul class="list-disc list-inside text-gray-700 ml-4">`, len(foundField.WorkspaceNames)))
+
+		for _, workspaceName := range foundField.WorkspaceNames {
+			html.WriteString(fmt.Sprintf(`<li>%s</li>`, workspaceName))
+		}
+
+		html.WriteString(`</ul></div>`)
+	} else {
+		html.WriteString(`<p class="text-gray-500">This field is not used in any workspaces.</p>`)
+	}
+
+	html.WriteString(`</div></div>`)
+
+	w.Write([]byte(html.String()))
+}
+
 // main is the entry point of the application
 func main() {
 	server, err := NewServer()
@@ -1332,109 +990,17 @@ func main() {
 	// Serve static files
 	http.Handle("/static/", http.FileServer(http.FS(staticFS)))
 
-	// API endpoints
-	http.HandleFunc("/api/workspace/id", server.handleGetWorkspaceID)
-	http.HandleFunc("/api/workspace/users", server.handleGetWorkspaceUsers)
-	http.HandleFunc("/api/field/id", server.handleGetFieldID)
-	http.HandleFunc("/api/users/roles", server.handleGetUsersWithRoles)     // New endpoint for users with roles
-	http.HandleFunc("/api/user/workspaces", server.handleGetUserWorkspaces) // New endpoint for user workspaces
-
-	// Add new endpoint for listing all workspaces
-	http.HandleFunc("/api/workspaces", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		if r.Method != http.MethodPost {
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"status": "error",
-				"error":  "Method not allowed",
-			})
-			return
-		}
-
-		apiKey := r.FormValue("api_key")
-		if apiKey == "" {
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"status": "error",
-				"error":  "API key is required",
-			})
-			return
-		}
-
-		client := airfocus.NewClient(apiKey)
-		workspaces, err := client.ListWorkspaces(r.Context())
-		if err != nil {
-			json.NewEncoder(w).Encode(map[string]interface{}{
-				"status": "error",
-				"error":  err.Error(),
-			})
-			return
-		}
-
-		// Transform workspaces to include only relevant fields
-		type WorkspaceSummary struct {
-			ID    string `json:"id"`
-			Name  string `json:"name"`
-			Alias string `json:"alias"`
-			// Description removed as fmt.Sprintf("%v", ws.Description.Blocks) is not a good JSON representation
-			ItemType     string `json:"itemType"`
-			ProgressMode string `json:"progressMode"`
-			Archived     bool   `json:"archived"`
-		}
-
-		summaries := make([]WorkspaceSummary, len(workspaces))
-		for i, ws := range workspaces {
-			summaries[i] = WorkspaceSummary{
-				ID:           ws.ID,
-				Name:         ws.Name,
-				Alias:        ws.Alias,
-				ItemType:     ws.ItemType,
-				ProgressMode: ws.ProgressMode,
-				Archived:     ws.Archived,
-			}
-		}
-
-		if err := json.NewEncoder(w).Encode(map[string]interface{}{
-			"status": "success",
-			"data":   summaries,
-		}); err != nil {
-			log.Printf("Error encoding response: %v", err)
-		}
-	})
-
-	// Add the new route for listing fields
-	http.HandleFunc("/api/fields", server.handleListFields)
-
-	// Add the new HTMX route for listing fields
+	// HTMX endpoints only (removed redundant JSON endpoints)
 	http.HandleFunc("/api/fields/htmx", server.handleListFieldsHTMX)
-
-	// Add the new endpoint
-	http.HandleFunc("/api/team/license", handleGetTeamLicense)
-
-	// Add the new endpoint for listing contributors
-	http.HandleFunc("/api/contributors", server.handleGetContributors)
-
-	// Add the new endpoint for listing users with roles and return HTML
-	http.HandleFunc("/api/users/roles/htmx", server.handleGetUsersWithRolesHTMX)
-
-	// Add the new endpoint for getting user workspaces and return HTML
-	http.HandleFunc("/api/user/workspaces/htmx", server.handleGetUserWorkspacesHTMX)
-
-	// Add the new endpoint for getting license information and return HTML
+	http.HandleFunc("/api/field/select/htmx", server.handleGetFieldSelectHTMX)
+	http.HandleFunc("/api/field/info/htmx", server.handleGetFieldInfoHTMX)
 	http.HandleFunc("/api/team/license/htmx", server.handleGetLicenseInfoHTMX)
-
-	// Add the new endpoint for getting workspaces and return HTML
+	http.HandleFunc("/api/users/roles/htmx", server.handleGetUsersWithRolesHTMX)
+	http.HandleFunc("/api/user/workspaces/htmx", server.handleGetUserWorkspacesHTMX)
 	http.HandleFunc("/api/workspaces/htmx", server.handleGetWorkspacesHTMX)
-
-	// Add the new endpoint for getting workspace ID and return HTML
 	http.HandleFunc("/api/workspace/id/htmx", server.handleGetWorkspaceIDHTMX)
-
-	// Add the new endpoint for getting workspace users and return HTML
 	http.HandleFunc("/api/workspace/users/htmx", server.handleGetWorkspaceUsersHTMX)
-
-	// Add the new endpoint for getting users and return HTML
 	http.HandleFunc("/api/users/htmx", server.handleGetUsersHTMX)
-
-	// Add the new endpoint for getting user info and return HTML
 	http.HandleFunc("/api/user/info/htmx", server.handleGetUserInfoHTMX)
 
 	// Root handler
