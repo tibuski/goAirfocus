@@ -64,33 +64,23 @@
         <!-- Workspace Selection Section -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 class="text-xl font-semibold text-gray-700 mb-4">Select Workspace</h2>
-            <button hx-post="/api/workspaces/htmx" 
-                    hx-target="#workspaceSelectionResult" 
-                    hx-swap="innerHTML"
-                    hx-indicator="#workspaceLoadingIndicator"
-                    class="btn mt-2">
-                <span class="htmx-indicator" id="workspaceLoadingIndicator">
-                    Loading workspaces...
-                </span>
-                <span class="htmx-default">
-                    Load Workspaces
-                </span>
-            </button>
+            <div class="flex space-x-4">
+                <button hx-post="/api/workspaces/htmx" 
+                        hx-target="#workspaceSelectionResult" 
+                        hx-swap="innerHTML"
+                        hx-indicator="#workspaceLoadingIndicator"
+                        class="btn">
+                    <span class="htmx-indicator" id="workspaceLoadingIndicator">
+                        Loading workspaces...
+                    </span>
+                    <span class="htmx-default">
+                        Load Workspaces
+                    </span>
+                </button>
+            </div>
             
             <div id="workspaceSelectionResult" class="mt-4">
-                <select id="workspaceSelect"
-                        name="workspace_select"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        hx-post="/api/workspace/id/htmx"
-                        hx-target="#workspaceResult"
-                        hx-swap="innerHTML"
-                        hx-trigger="change from:body"
-                        hx-include="#apiKey, #workspaceSelect"
-                        hx-indicator="#workspaceIDLoadingIndicator"
-                        hx-on:change="htmx.trigger('#workspaceUsersTrigger', 'change')">
-                    <option value="">Select a workspace...</option>
-                    <!-- Options will be populated by HTMX -->
-                </select>
+                <!-- Workspace dropdown will be loaded here -->
             </div>
 
             <!-- Hidden trigger for workspace users -->
@@ -123,47 +113,72 @@
             </div>
         </div>
 
-        <!-- User Management Section -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">User Management</h2>
-            <div class="space-y-6">
-                <!-- Get Users with Roles -->
-                <div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">Get Users with Roles</h3>
-                    <div class="space-y-4">
-                        <!-- HTMX-powered Get Users button -->
-                        <button hx-post="/api/users/roles/htmx" 
-                                hx-target="#userManagementResult" 
-                                hx-swap="innerHTML"
-                                hx-indicator="#usersLoadingIndicator"
-                                class="btn">
-                            <span class="htmx-indicator" id="usersLoadingIndicator">
-                                Loading users...
-                            </span>
-                            <span class="htmx-default">
-                                Get Users
-                            </span>
-                        </button>
-                        
-                        <!-- User results area -->
-                        <div id="userManagementResult" class="mt-4 p-4 bg-gray-50 rounded-md">
-                            <!-- Users will be loaded here -->
-                        </div>
-                    </div>
-                </div>
+        <!-- User Management -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Select User</h2>
+            <div class="flex space-x-4">
+                <button
+                    hx-post="/api/users/htmx"
+                    hx-target="#userSelectionResult"
+                    hx-swap="innerHTML"
+                    class="btn"
+                >
+                    Load Users
+                </button>
+            </div>
+            <div id="userSelectionResult" class="mt-4">
+                <!-- User dropdown will be loaded here -->
+                {{if .Users}}
+                <select hx-post="/api/users/{{.SelectedUserID}}/info/htmx"
+                        hx-target="#userDetailsResult"
+                        hx-swap="innerHTML"
+                        class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white text-gray-700"
+                        onchange="this.form.submit()">
+                    <option value="">Select a user</option>
+                    {{range .Users}}
+                    <option value="{{.UserID}}" {{if eq .UserID $.SelectedUserID}}selected{{end}}>
+                        {{.FullName}} ({{.Email}})
+                    </option>
+                    {{end}}
+                </select>
+                {{end}}
+            </div>
 
-                <!-- User Workspaces Tree View -->
-                <div>
-                    <h3 class="text-lg font-medium text-gray-700 mb-3">User Workspaces & Permissions</h3>
-                    <div class="space-y-4">
-                        <p class="text-sm text-gray-600">First get users above, then select a user to view their workspace permissions.</p>
-                        
-                        <!-- User workspaces result area -->
-                        <div id="userWorkspacesResult" class="mt-4 p-4 bg-gray-50 rounded-md">
-                            <!-- User workspaces tree will be loaded here -->
-                        </div>
+            <div id="userDetailsResult" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- User ID and User Workspaces will be loaded here -->
+                {{if .User}}
+                <!-- User ID Block -->
+                <div class="bg-gray-50 p-4 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-700">User Details</h3>
+                    <div class="text-gray-700">
+                        <p><strong>ID:</strong> {{.User.UserID}}</p>
+                        <p><strong>Full Name:</strong> {{.User.FullName}}</p>
+                        <p><strong>Email:</strong> {{.User.Email}}</p>
+                        <p><strong>Role:</strong> {{.User.Role}}</p>
+                        <p><strong>Created At:</strong> {{.User.CreatedAt}}</p>
+                        <p><strong>Last Updated At:</strong> {{.User.UpdatedAt}}</p>
                     </div>
                 </div>
+                {{end}}
+
+                {{if .GroupedWorkspaces}}
+                <!-- User Workspaces Block -->
+                <div class="bg-gray-50 p-4 rounded-lg shadow">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-700">User Workspaces</h3>
+                    <div class="space-y-4">
+                        {{range $permission, $workspaces := .GroupedWorkspaces}}
+                        <div>
+                            <h4 class="text-lg font-medium text-gray-700 mb-2">Permission: <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{getPermissionColorClass $permission}}">{{$permission}}</span></h4>
+                            <ul class="list-disc list-inside text-gray-700 ml-4">
+                                {{range $workspaces}}
+                                <li>{{.Name}} (ID: {{.ID}})</li>
+                                {{end}}
+                            </ul>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
             </div>
         </div>
 

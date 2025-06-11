@@ -1,0 +1,59 @@
+<!-- templates/user_details_partial.html -->
+{{if .User}}
+<!-- User ID Block -->
+<div class="bg-green-50 p-4 rounded-lg shadow-md border border-green-300">
+    <h3 class="text-xl font-semibold mb-2 text-gray-700">User Details</h3>
+    <div class="text-gray-700">
+        <p><strong>ID:</strong> {{.User.UserID}}</p>
+        <p><strong>Full Name:</strong> {{.User.FullName}}</p>
+        <p><strong>Role:</strong> {{.User.Role}}</p>
+        <p><strong>Created At:</strong> {{.User.CreatedAt}}</p>
+        <p><strong>Last Updated At:</strong> {{.User.UpdatedAt}}</p>
+    </div>
+</div>
+{{end}}
+
+{{if .UserGroups}}
+<!-- User Groups Block -->
+<div class="bg-green-50 p-4 rounded-lg shadow-md border border-green-300">
+    <h3 class="text-xl font-semibold mb-2 text-gray-700">User Groups</h3>
+    <div class="space-y-4">
+        {{range .UserGroups}}
+        <div class="ml-{{mul .Level 4}} mb-3">
+            <p class="text-sm font-bold text-gray-900">
+                {{if gt .Level 1}}--> {{end}}{{.Name}}
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{getPermissionColorClass (permToString .CurrentPermission)}}">{{permToString .CurrentPermission}}</span>
+            </p>
+            {{if .Embedded.Workspaces}}
+            <ul class="list-disc list-inside text-sm text-gray-700 ml-4">
+                {{range .Embedded.Workspaces}}
+                <li>{{.Name}} <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{getPermissionColorClass (permToString .CurrentPermission)}}">{{permToString .CurrentPermission}}</span></li>
+                {{end}}
+            </ul>
+            {{end}}
+            {{if .Children}}
+                {{range .Children}}
+                <div class="ml-{{mul .Level 4}} mb-3">
+                    <p class="text-sm font-bold text-gray-900">
+                        {{if gt .Level 1}}--> {{end}}{{.Name}}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{getPermissionColorClass (permToString .CurrentPermission)}}">{{permToString .CurrentPermission}}</span>
+                    </p>
+                    {{if .Embedded.Workspaces}}
+                    <ul class="list-disc list-inside text-sm text-gray-700 ml-4">
+                        {{range .Embedded.Workspaces}}
+                        <li>{{.Name}} <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{getPermissionColorClass (permToString .CurrentPermission)}}">{{permToString .CurrentPermission}}</span></li>
+                        {{end}}
+                    </ul>
+                    {{end}}
+                </div>
+                {{end}}
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}
+
+{{if .Workspaces}}
+<!-- This block is redundant as all relevant data is in GroupedUserGroups based on the desired output -->
+{{end}} 

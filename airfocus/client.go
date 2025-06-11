@@ -84,8 +84,10 @@ type WorkspaceGroup struct {
 	LastUpdatedAt     string `json:"lastUpdatedAt"`      // Last update timestamp
 	TeamID            string `json:"teamId"`             // ID of the team this group belongs to
 	Embedded          struct {
-		Workspaces []Workspace `json:"workspaces,omitempty"` // List of workspaces in this group
+		Workspaces  []Workspace       `json:"workspaces,omitempty"`  // List of workspaces in this group
+		Permissions map[string]string `json:"permissions,omitempty"` // Map of user IDs to their permissions for the group
 	} `json:"_embedded,omitempty"`
+	CurrentPermission Permission `json:"currentPermission,omitempty"` // Current user's permission for this group
 }
 
 // WorkspaceGroupSearchQuery represents the query parameters for workspace group search
@@ -171,8 +173,9 @@ type Workspace struct {
 	Embedded  struct {
 		Permissions map[string]string `json:"permissions"` // Map of user IDs to their permissions
 	} `json:"_embedded,omitempty"`
-	GroupID   string `json:"groupId,omitempty"`   // ID of the group this workspace belongs to
-	GroupName string `json:"groupName,omitempty"` // Name of the group this workspace belongs to
+	GroupID           string     `json:"groupId,omitempty"`           // ID of the group this workspace belongs to
+	GroupName         string     `json:"groupName,omitempty"`         // Name of the group this workspace belongs to
+	CurrentPermission Permission `json:"currentPermission,omitempty"` // Current user's permission for this workspace
 }
 
 // WorkspaceResponse represents the response from the workspace search API
@@ -947,4 +950,151 @@ func (c *Client) fetchFields(ctx context.Context) ([]FieldWithWorkspaceNames, er
 	}
 
 	return fieldsWithNames, nil
+}
+
+// Permission represents the access level to a workspace or workspace group.
+type Permission string
+
+const (
+	PermissionRead    Permission = "read"
+	PermissionComment Permission = "comment"
+	PermissionWrite   Permission = "write"
+	PermissionFull    Permission = "full"
+)
+
+// GetUser fetches a single user by their ID.
+func (c *Client) GetUser(ctx context.Context, userID string) (User, error) {
+	// Ensure user cache is up-to-date
+	if err := c.RefreshCacheIfNeeded(ctx); err != nil {
+		return User{}, fmt.Errorf("failed to refresh cache for users: %w", err)
+	}
+
+	c.cacheMutex.RLock()
+	defer c.cacheMutex.RUnlock()
+
+	for _, user := range c.cache.users {
+		if user.UserID == userID {
+			return user, nil
+		}
+	}
+	return User{}, fmt.Errorf("user with ID %s not found", userID)
+}
+
+// GetUserGroupAccess retrieves workspace groups the user has access to,
+// populating their current permission and embedding relevant workspaces with user permissions.
+// This function properly handles hierarchical group permissions.
+func (c *Client) GetUserGroupAccess(ctx context.Context, userID string) ([]WorkspaceGroup, error) {
+	// Fetch all workspace groups
+	groups, err := c.ListWorkspaceGroups(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list workspace groups: %w", err)
+	}
+
+	// Fetch all workspaces once
+	allWorkspaces, err := c.ListWorkspaces(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all workspaces: %w", err)
+	}
+
+	// Create maps for quick lookup
+	groupMap := make(map[string]WorkspaceGroup)
+	groupParentMap := make(map[string]string)
+	workspacesByGroupID := make(map[string][]Workspace)
+
+	// Build lookup maps
+	for _, group := range groups {
+		groupMap[group.ID] = group
+		if group.ParentID != "" {
+			groupParentMap[group.ID] = group.ParentID
+		}
+	}
+
+	// Group workspaces by their GroupID
+	for _, ws := range allWorkspaces {
+		workspacesByGroupID[ws.GroupID] = append(workspacesByGroupID[ws.GroupID], ws)
+	}
+
+	// Helper function to get the highest permission from a set of permissions
+	getHighestPermission := func(currentPerm Permission, newPerm Permission) Permission {
+		pOrder := map[Permission]int{
+			PermissionRead:    1,
+			PermissionComment: 2,
+			PermissionWrite:   3,
+			PermissionFull:    4,
+		}
+		if pOrder[newPerm] > pOrder[currentPerm] {
+			return newPerm
+		}
+		return currentPerm
+	}
+
+	// Helper function to calculate effective permission for a group
+	calculateGroupPermission := func(groupID string) Permission {
+		effectivePermission := PermissionRead // Start with lowest permission
+
+		// Traverse up the group hierarchy
+		currentGroupID := groupID
+		for currentGroupID != "" {
+			if group, ok := groupMap[currentGroupID]; ok {
+				// Check explicit permission for the user in this group
+				if permStr, ok := group.Embedded.Permissions[userID]; ok {
+					effectivePermission = getHighestPermission(effectivePermission, Permission(permStr))
+				}
+				// Check default team permission for this group
+				if group.DefaultPermission != "" {
+					effectivePermission = getHighestPermission(effectivePermission, Permission(group.DefaultPermission))
+				}
+				currentGroupID = groupParentMap[currentGroupID] // Move up the hierarchy
+			} else {
+				break // Group not found, stop traversing
+			}
+		}
+
+		return effectivePermission
+	}
+
+	// Helper function to calculate effective permission for a workspace
+	calculateWorkspacePermission := func(workspace Workspace) Permission {
+		effectivePermission := PermissionRead // Start with lowest permission
+
+		// 1. Check explicit permission for the specific user in the workspace settings
+		if permStr, ok := workspace.Embedded.Permissions[userID]; ok {
+			effectivePermission = getHighestPermission(effectivePermission, Permission(permStr))
+		}
+
+		// 2. Check group hierarchy permissions (if workspace belongs to a group)
+		if workspace.GroupID != "" {
+			groupPermission := calculateGroupPermission(workspace.GroupID)
+			effectivePermission = getHighestPermission(effectivePermission, groupPermission)
+		}
+
+		return effectivePermission
+	}
+
+	var userAccessibleGroups []WorkspaceGroup
+
+	// Process each group
+	for _, group := range groups {
+		// Calculate the user's effective permission for this group
+		groupPermission := calculateGroupPermission(group.ID)
+
+		// Only include groups the user has some permission for
+		if groupPermission != "" {
+			group.CurrentPermission = groupPermission
+
+			// Populate workspaces for this group
+			if wsList, ok := workspacesByGroupID[group.ID]; ok {
+				var workspacesWithUserPermissions []Workspace
+				for _, ws := range wsList {
+					ws.CurrentPermission = calculateWorkspacePermission(ws)
+					workspacesWithUserPermissions = append(workspacesWithUserPermissions, ws)
+				}
+				group.Embedded.Workspaces = workspacesWithUserPermissions
+			}
+
+			userAccessibleGroups = append(userAccessibleGroups, group)
+		}
+	}
+
+	return userAccessibleGroups, nil
 }

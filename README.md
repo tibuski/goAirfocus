@@ -8,15 +8,12 @@ A Go application that provides tools to interact with the Airfocus API, specific
 - **Improved Workspace Management**:
   - Automatically displays Workspace ID and Users when a workspace is selected from the dropdown.
   - Workspace users are grouped by permission level (Full, Write, Comment, Read) with distinct color coding for clarity.
-- **User Management**
-  - List all users with their roles (via "Get Users" button)
-  - Get user workspace access with hierarchical group display (via "User Workspaces & Permissions" section, further tree view implementation for individual user selection is a future enhancement)
-  - View user permissions across workspaces (now grouped by permission)
-
-- **Field Management**
-  - List all fields (via "Get Fields" button)
-  - Get Field ID (via form submission)
-
+- **User Management**:
+  - Lists all users and allows selection to view their details and associated workspaces.
+  - Displays user workspaces grouped by permission with color-coded badges.
+- **Field Management**:
+  - Lists all fields (via "Get Fields" button).
+  - Gets Field ID (via form submission).
 - **License Information**: Accurately displays license role statistics, showing actual used seats for Admin, Editor, and Contributor roles.
 
 ## Deployment
@@ -106,31 +103,18 @@ docker-compose down
    - Development: `http://localhost:8080`
    - Production: `https://airfocus.yourdomain.com`
 2. Enter your Airfocus API key in the provided field.
-3. **Workspace Management**: Click "Load Workspaces" to populate the dropdown. Then, select a workspace from the dropdown to automatically view its ID and grouped users.
-4. **User Management**: Click "Get Users" to list all users with their roles. (Further functionality for user workspaces to be implemented).
-5. **Field Management**: Click "Get Fields" to list all available fields. To get a specific field's ID, enter its name in the input field and click "Get Field ID".
-6. **License Information**: Click "Get License Info" to view your team's license details and role statistics.
+3. **License Information**: Click "Refresh" to view your team's license details and role statistics.
+4. **Workspace Management**: Click "Load Workspaces" to populate the dropdown. A success message will indicate the number of workspaces loaded. Then, select a workspace from the dropdown to automatically view its ID and grouped users.
+5. **User Management**: Click "Load Users" to populate the dropdown. A success message will indicate the number of users loaded. Select a user from the dropdown to view their details and associated workspaces.
+6. **Field Management**: Click "Get Fields" to list all available fields. To get a specific field's ID, enter its name in the input field and click "Get Field ID".
 
-### User Workspace Access Display
+### User and Workspace Access Display
 
-The application now provides a clean, grouped view of workspace users by their permission levels:
+Both user and workspace access displays now provide a clean, grouped view by permission levels:
 
-- Users are categorized under `Full`, `Write`, `Comment`, and `Read` permissions.
-- Each permission group displays the count of users and a bulleted list of their names.
+- Items are categorized under `Full`, `Write`, `Comment`, and `Read` permissions.
+- Each permission group displays the count of items and a bulleted list of their names.
 - Color-coded left borders and permission badges enhance visual clarity.
-
-Example:
-```
-Workspace Users (4 total)
-├── Full (1 user)
-│   • User with full permissions
-├── Write (1 user)
-│   • Luc Fourestier
-├── Comment (1 user)
-│   • User with comment permissions
-└── Read (1 user)
-    • Tony Aussems
-```
 
 ## API Key
 

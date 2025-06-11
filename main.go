@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,7 +29,15 @@ type Server struct {
 
 // NewServer creates and initializes a new Server instance
 func NewServer() (*Server, error) {
-	tmpl, err := template.ParseFS(templatesFS, "templates/*.html")
+	tmpl, err := template.New("").Funcs(template.FuncMap{
+		"getPermissionColorClass": getPermissionColorClass,
+		"join":                    strings.Join,
+		"title":                   strings.Title,
+		"permToString":            permToString,
+		"mul": func(a, b int) int {
+			return a * b
+		},
+	}).ParseFS(templatesFS, "templates/*.html", "templates/*_partial.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse templates: %w", err)
 	}
@@ -898,22 +907,6 @@ func (s *Server) handleGetUserWorkspacesHTMX(w http.ResponseWriter, r *http.Requ
 	w.Write([]byte(html.String()))
 }
 
-// getPermissionColorClass returns the appropriate CSS class for permission styling
-func getPermissionColorClass(permission string) string {
-	switch strings.ToLower(permission) {
-	case "full":
-		return "bg-red-100 text-red-800"
-	case "write":
-		return "bg-blue-100 text-blue-800"
-	case "comment":
-		return "bg-yellow-100 text-yellow-800"
-	case "read":
-		return "bg-green-100 text-green-800"
-	default:
-		return "bg-gray-100 text-gray-800"
-	}
-}
-
 // handleGetLicenseInfoHTMX handles POST requests to get license information and return HTML
 func (s *Server) handleGetLicenseInfoHTMX(w http.ResponseWriter, r *http.Request) {
 	log.Printf("handleGetLicenseInfoHTMX called - Method: %s", r.Method)
@@ -1043,347 +1036,290 @@ func (s *Server) handleGetLicenseInfoHTMX(w http.ResponseWriter, r *http.Request
 	w.Write([]byte(html.String()))
 }
 
-// handleGetWorkspacesHTMX handles POST requests to get workspaces and return HTML
+// handleGetWorkspacesHTMX fetches workspaces and returns HTML for a select dropdown.
 func (s *Server) handleGetWorkspacesHTMX(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleGetWorkspacesHTMX called - Method: %s", r.Method)
-	w.Header().Set("Content-Type", "text/html")
-
 	if r.Method != http.MethodPost {
-		log.Printf("Method not allowed: %s", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	apiKey := r.FormValue("api_key")
 	if apiKey == "" {
-		log.Printf("API key is missing")
 		http.Error(w, "API key is required", http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("Creating Airfocus client and calling ListWorkspaces for HTMX")
 	client := airfocus.NewClient(apiKey)
 	workspaces, err := client.ListWorkspaces(r.Context())
 	if err != nil {
-		log.Printf("Error getting workspaces: %v", err)
-		http.Error(w, fmt.Sprintf("Failed to get workspaces: %v", err), http.StatusInternalServerError)
+		log.Printf("Error listing workspaces for HTMX: %v", err)
+		http.Error(w, "Failed to retrieve workspaces", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("Successfully retrieved %d workspaces for HTMX", len(workspaces))
-
-	// Generate HTML for the workspace dropdown
-	var html strings.Builder
-
-	html.WriteString(`<div class="flex flex-col md:flex-row gap-4 mb-4 items-end">
-		<div class="flex-1 w-full">
-			<label for="workspaceSelect" class="block text-sm font-medium text-gray-700">Choose from list:</label>
-			<select id="workspaceSelect" 
-					name="workspace_select"
-					class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-					hx-post="/api/workspace/id/htmx"
-					hx-target="#workspaceResult"
-					hx-swap="innerHTML"
-					hx-trigger="change from:body"
-					hx-include="#apiKey, #workspaceSelect"
-					hx-indicator="#workspaceIDLoadingIndicator"
-					hx-on:change="htmx.trigger('#workspaceUsersTrigger', 'change')">
-				<option value="">Select a workspace...</option>`)
-
-	if len(workspaces) > 0 {
-		for _, workspace := range workspaces {
-			displayText := workspace.Name
-			if workspace.Alias != "" {
-				displayText += fmt.Sprintf(" (%s)", workspace.Alias)
-			}
-			html.WriteString(fmt.Sprintf(`<option value="%s">%s</option>`, workspace.ID, displayText))
-		}
-		html.WriteString(fmt.Sprintf(`</select>
-		<p class="mt-2 text-sm text-green-600">✓ Loaded %d workspaces successfully</p>`, len(workspaces)))
-	} else {
-		html.WriteString(`</select>
-		<p class="mt-2 text-sm text-gray-500">No workspaces found for this API key.</p>`)
+	data := map[string]interface{}{
+		"Workspaces": workspaces,
 	}
 
-	html.WriteString(`</div>
-	</div>`)
-
-	w.Write([]byte(html.String()))
+	// It's crucial to specify the partial template here.
+	if err := s.templates.ExecuteTemplate(w, "workspace_select_partial.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
-// handleGetFieldIDHTMX handles POST requests to get field ID and return HTML
-func (s *Server) handleGetFieldIDHTMX(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleGetFieldIDHTMX called - Method: %s", r.Method)
-	w.Header().Set("Content-Type", "text/html")
-
-	if r.Method != http.MethodPost {
-		log.Printf("Method not allowed: %s", r.Method)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	fieldName := r.FormValue("field_name")
-
-	if apiKey == "" || fieldName == "" {
-		log.Printf("API key or field name is missing")
-		http.Error(w, "API key and field name are required", http.StatusBadRequest)
-		return
-	}
-
-	log.Printf("Creating Airfocus client and calling ListFields for HTMX")
-	client := airfocus.NewClient(apiKey)
-	fields, err := client.ListFields(r.Context())
-	if err != nil {
-		log.Printf("Error getting fields: %v", err)
-		http.Error(w, fmt.Sprintf("Failed to get fields: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("Successfully retrieved %d fields for HTMX", len(fields))
-
-	// Find the field by name
-	var foundField *airfocus.FieldWithWorkspaceNames
-	for _, field := range fields {
-		if strings.EqualFold(field.Name, fieldName) {
-			foundField = &field
-			break
-		}
-	}
-
-	// Generate HTML for the field result
-	var html strings.Builder
-
-	if foundField != nil {
-		html.WriteString(fmt.Sprintf(`<div class="bg-green-50 border border-green-200 rounded-md p-4">
-			<h4 class="text-lg font-medium text-green-800 mb-2">Field Found</h4>
-			<div class="space-y-2">
-				<div><strong>Field ID:</strong> <code class="bg-gray-100 px-2 py-1 rounded">%s</code></div>
-				<div><strong>Name:</strong> %s</div>
-				<div><strong>Type:</strong> %s</div>
-				<div><strong>Description:</strong> %s</div>
-				<div><strong>Team Field:</strong> %t</div>`,
-			foundField.ID,
-			foundField.Name,
-			foundField.Type,
-			foundField.Description,
-			foundField.IsTeamField))
-
-		if len(foundField.WorkspaceNames) > 0 {
-			html.WriteString(fmt.Sprintf(`<div><strong>Used in Workspaces:</strong> %s</div>`, strings.Join(foundField.WorkspaceNames, ", ")))
-		}
-
-		html.WriteString(`</div>
-		</div>`)
-	} else {
-		html.WriteString(fmt.Sprintf(`<div class="bg-red-50 border border-red-200 rounded-md p-4">
-			<h4 class="text-lg font-medium text-red-800 mb-2">Field Not Found</h4>
-			<p class="text-red-700">No field found with name: "%s"</p>
-			<p class="text-sm text-red-600 mt-2">Try using the "Get Fields" button above to see available fields.</p>
-		</div>`, fieldName))
-	}
-
-	w.Write([]byte(html.String()))
-}
-
-// handleGetWorkspaceIDHTMX handles POST requests to get workspace ID and return HTML
+// handleGetWorkspaceIDHTMX retrieves workspace ID and renders HTML.
 func (s *Server) handleGetWorkspaceIDHTMX(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleGetWorkspaceIDHTMX called - Method: %s", r.Method)
-	w.Header().Set("Content-Type", "text/html")
-
 	if r.Method != http.MethodPost {
-		log.Printf("Method not allowed: %s", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	apiKey := r.FormValue("api_key")
-	workspaceName := r.FormValue("workspace_name")
-	workspaceSelect := r.FormValue("workspace_select")
+	workspaceID := r.FormValue("workspace_select") // Get selected workspace ID from the form
 
-	if apiKey == "" {
-		log.Printf("API key is missing")
-		http.Error(w, "API key is required", http.StatusBadRequest)
-		return
-	}
-
-	// Determine which workspace to use
-	var workspaceID string
-	if workspaceSelect != "" {
-		workspaceID = workspaceSelect
-	} else if workspaceName != "" {
-		// Search for workspace by name
-		client := airfocus.NewClient(apiKey)
-		workspaces, err := client.ListWorkspaces(r.Context())
-		if err != nil {
-			log.Printf("Error getting workspaces: %v", err)
-			http.Error(w, fmt.Sprintf("Failed to get workspaces: %v", err), http.StatusInternalServerError)
-			return
-		}
-
-		// Find workspace by name (case-insensitive, partial match)
-		for _, ws := range workspaces {
-			if strings.Contains(strings.ToLower(ws.Name), strings.ToLower(workspaceName)) {
-				workspaceID = ws.ID
-				break
-			}
-		}
-	}
-
-	// Generate HTML for the workspace result
-	var html strings.Builder
-
-	if workspaceID != "" {
-		html.WriteString(fmt.Sprintf(`<div class="bg-green-50 border border-green-200 rounded-md p-4">
-			<h4 class="text-lg font-medium text-green-800 mb-2">Workspace ID</h4>
-			<div class="space-y-2">
-				<code class="bg-gray-100 px-2 py-1 rounded">%s</code>
-			</div>
-		</div>`, workspaceID))
-	} else {
-		html.WriteString(`<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-			<h4 class="text-lg font-medium text-yellow-800 mb-2">No Workspace Selected</h4>
-			<p class="text-yellow-700">Select a workspace from the dropdown to see its ID.</p>
-		</div>`)
-	}
-
-	w.Write([]byte(html.String()))
-}
-
-// handleGetWorkspaceUsersHTMX handles POST requests to get workspace users and return HTML
-func (s *Server) handleGetWorkspaceUsersHTMX(w http.ResponseWriter, r *http.Request) {
-	log.Printf("handleGetWorkspaceUsersHTMX called - Method: %s", r.Method)
-	w.Header().Set("Content-Type", "text/html")
-
-	if r.Method != http.MethodPost {
-		log.Printf("Method not allowed: %s", r.Method)
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	apiKey := r.FormValue("api_key")
-	workspaceID := r.FormValue("workspace_id")
-
-	if apiKey == "" {
-		log.Printf("API key is missing")
-		http.Error(w, "API key is required", http.StatusBadRequest)
-		return
-	}
-
-	if workspaceID == "" {
-		// Try to get workspace ID from workspace select or name
-		workspaceSelect := r.FormValue("workspace_select")
-		workspaceName := r.FormValue("workspace_name")
-
-		if workspaceSelect != "" {
-			workspaceID = workspaceSelect
-		} else if workspaceName != "" {
-			// Search for workspace by name
-			client := airfocus.NewClient(apiKey)
-			workspaces, err := client.ListWorkspaces(r.Context())
-			if err != nil {
-				log.Printf("Error getting workspaces: %v", err)
-				http.Error(w, fmt.Sprintf("Failed to get workspaces: %v", err), http.StatusInternalServerError)
-				return
-			}
-
-			// Find workspace by name (case-insensitive, partial match)
-			for _, ws := range workspaces {
-				if strings.Contains(strings.ToLower(ws.Name), strings.ToLower(workspaceName)) {
-					workspaceID = ws.ID
-					break
-				}
-			}
-		}
-	}
-
-	if workspaceID == "" {
-		http.Error(w, "Workspace ID or name is required", http.StatusBadRequest)
+	if apiKey == "" || workspaceID == "" {
+		http.Error(w, "API key and Workspace ID are required", http.StatusBadRequest)
 		return
 	}
 
 	client := airfocus.NewClient(apiKey)
-	workspaceUsers, err := client.GetWorkspaceUsers(r.Context(), workspaceID)
+	workspace, err := client.GetWorkspaceByID(r.Context(), workspaceID)
 	if err != nil {
-		log.Printf("Error getting workspace users: %v", err)
-		http.Error(w, fmt.Sprintf("Failed to get workspace users: %v", err), http.StatusInternalServerError)
+		log.Printf("Error getting workspace ID %s: %v", workspaceID, err)
+		http.Error(w, "Failed to retrieve workspace ID", http.StatusInternalServerError)
 		return
 	}
 
-	// Generate HTML for the workspace users
-	var html strings.Builder
-
-	if len(workspaceUsers) > 0 {
-		// Group users by permission
-		usersByPermission := make(map[string][]airfocus.WorkspaceUser)
-		for _, user := range workspaceUsers {
-			usersByPermission[user.Permission] = append(usersByPermission[user.Permission], user)
-		}
-
-		// Define permission order (highest to lowest) - correct Airfocus permissions
-		permissionOrder := []string{"full", "write", "comment", "read"}
-
-		html.WriteString(fmt.Sprintf(`<div class="bg-green-50 border border-green-200 rounded-md p-4">
-			<h4 class="text-lg font-medium text-green-800 mb-4">Workspace Users (%d total)</h4>
-			<div class="space-y-6">`, len(workspaceUsers)))
-
-		// Generate sections for each permission level
-		for _, permission := range permissionOrder {
-			if users, exists := usersByPermission[permission]; exists {
-				// Get color classes for this permission
-				colorClass := getPermissionColorClass(permission)
-				borderColor := "border-gray-400"
-				textColor := "text-gray-800"
-
-				// Set specific colors based on permission
-				switch permission {
-				case "full":
-					borderColor = "border-red-400"
-					textColor = "text-red-800"
-				case "write":
-					borderColor = "border-blue-400"
-					textColor = "text-blue-800"
-				case "comment":
-					borderColor = "border-yellow-400"
-					textColor = "text-yellow-800"
-				case "read":
-					borderColor = "border-green-400"
-					textColor = "text-green-800"
-				}
-
-				html.WriteString(fmt.Sprintf(`<div class="border-l-4 %s pl-4">
-					<h5 class="text-md font-semibold %s mb-2 flex items-center">
-						<span class="px-2 py-1 rounded text-sm %s mr-2">%s</span>
-						<span>(%d users)</span>
-					</h5>
-					<div class="space-y-2 ml-4">`,
-					borderColor,
-					textColor,
-					colorClass,
-					strings.Title(permission),
-					len(users)))
-
-				for _, user := range users {
-					html.WriteString(fmt.Sprintf(`<div class="text-sm text-gray-700">
-						• %s
-					</div>`, user.FullName))
-				}
-
-				html.WriteString(`</div>
-				</div>`)
-			}
-		}
-
-		html.WriteString(`</div>
-		</div>`)
-	} else {
-		html.WriteString(`<div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-			<h4 class="text-lg font-medium text-yellow-800 mb-2">No Users Found</h4>
-			<p class="text-yellow-700">No users found for this workspace.</p>
-		</div>`)
+	data := map[string]interface{}{
+		"WorkspaceID":    workspace.ID,
+		"WorkspaceAlias": workspace.Alias,
 	}
 
-	w.Write([]byte(html.String()))
+	// Render only the partial for the workspace ID
+	if err := s.templates.ExecuteTemplate(w, "workspace_id_partial.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// handleGetWorkspaceUsersHTMX retrieves workspace users and renders HTML.
+func (s *Server) handleGetWorkspaceUsersHTMX(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	workspaceID := r.FormValue("workspace_select") // Get selected workspace ID from the form
+
+	if apiKey == "" || workspaceID == "" {
+		http.Error(w, "API key and Workspace ID are required", http.StatusBadRequest)
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+	users, err := client.GetWorkspaceUsers(r.Context(), workspaceID)
+	if err != nil {
+		log.Printf("Error getting workspace users for ID %s: %v", workspaceID, err)
+		http.Error(w, "Failed to retrieve workspace users", http.StatusInternalServerError)
+		return
+	}
+
+	// Group users by permission
+	groupedUsers := make(map[string][]airfocus.WorkspaceUser)
+	for _, user := range users {
+		permission := strings.ToLower(user.Permission)
+		groupedUsers[permission] = append(groupedUsers[permission], user)
+	}
+
+	// Sort permissions for consistent display
+	// permissionOrder := []string{"full", "write", "comment", "read"}
+
+	data := map[string]interface{}{
+		"GroupedWorkspaces": groupedUsers,
+		// "PermissionOrder":   permissionOrder,
+	}
+
+	// Render only the partial for workspace users
+	if err := s.templates.ExecuteTemplate(w, "workspace_users_partial.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// handleGetUsersHTMX fetches users and renders a select dropdown
+func (s *Server) handleGetUsersHTMX(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	if apiKey == "" {
+		http.Error(w, "API key is required", http.StatusBadRequest)
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+	users, err := client.FormatUsersWithRoles(r.Context())
+	if err != nil {
+		log.Printf("Error getting users with roles for HTMX: %v", err)
+		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{
+		"Users": users,
+	}
+
+	if err := s.templates.ExecuteTemplate(w, "user_select_partial.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// handleGetUserInfoHTMX fetches and displays detailed user info and their workspaces.
+func (s *Server) handleGetUserInfoHTMX(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	apiKey := r.FormValue("api_key")
+	userID := r.FormValue("user_select") // Get selected user ID from the form
+
+	if apiKey == "" || userID == "" {
+		http.Error(w, "API key and User ID are required", http.StatusBadRequest)
+		return
+	}
+
+	client := airfocus.NewClient(apiKey)
+	user, err := client.GetUser(r.Context(), userID)
+	if err != nil {
+		log.Printf("Error getting user %s: %v", userID, err)
+		http.Error(w, "Failed to retrieve user info", http.StatusInternalServerError)
+		return
+	}
+
+	// Fetch user's group access (this includes workspaces within groups)
+	userGroups, err := client.GetUserGroupAccess(r.Context(), userID)
+	if err != nil {
+		log.Printf("Error getting user group access for user %s: %v", userID, err)
+		http.Error(w, "Failed to retrieve user group access", http.StatusInternalServerError)
+		return
+	}
+
+	// Extract all workspaces from the groups for the User Workspaces section
+	var allWorkspaces []airfocus.Workspace
+	for _, group := range userGroups {
+		allWorkspaces = append(allWorkspaces, group.Embedded.Workspaces...)
+	}
+
+	// No longer grouping by permission at the top level
+	// Instead, sort all user groups by name
+	sort.Slice(userGroups, func(i, j int) bool {
+		return userGroups[i].Name < userGroups[j].Name
+	})
+
+	// Build the hierarchical group tree
+	hierarchicalGroups := buildGroupTree(userGroups)
+
+	// Group workspaces by permission (this is for the User Workspaces section, if it's still needed)
+	groupedWorkspaces := make(map[string][]airfocus.Workspace)
+	for _, ws := range allWorkspaces {
+		permission := string(ws.CurrentPermission)
+		groupedWorkspaces[permission] = append(groupedWorkspaces[permission], ws)
+	}
+
+	// Sort permissions for consistent display (if still needed for other sections)
+	// permissionOrder := []string{"full", "write", "comment", "read"}
+
+	data := map[string]interface{}{
+		"User":       user,
+		"Workspaces": groupedWorkspaces,  // Renamed from GroupedWorkspaces to avoid confusion if it's not grouped by permission here
+		"UserGroups": hierarchicalGroups, // Pass the hierarchical list of user groups
+		// "PermissionOrder":   permissionOrder,
+	}
+
+	if err := s.templates.ExecuteTemplate(w, "user_details_partial.html", data); err != nil {
+		log.Printf("Error executing template: %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// getPermissionColorClass returns the appropriate CSS class for permission styling
+func getPermissionColorClass(permission string) string {
+	switch strings.ToLower(permission) {
+	case "full":
+		return "bg-red-100 text-red-800"
+	case "write":
+		return "bg-blue-100 text-blue-800"
+	case "comment":
+		return "bg-yellow-100 text-yellow-800"
+	case "read":
+		return "bg-green-100 text-green-800"
+	default:
+		return "bg-gray-100 text-gray-800"
+	}
+}
+
+func permToString(p airfocus.Permission) string {
+	return string(p)
+}
+
+// HierarchicalGroup represents a group in a tree structure
+type HierarchicalGroup struct {
+	airfocus.WorkspaceGroup
+	Children []HierarchicalGroup
+	Level    int // New field to indicate depth for indentation
+}
+
+// buildGroupTree builds a hierarchical tree of groups from a flat list.
+func buildGroupTree(groups []airfocus.WorkspaceGroup) []HierarchicalGroup {
+	groupMap := make(map[string]airfocus.WorkspaceGroup)
+	for _, group := range groups {
+		groupMap[group.ID] = group
+	}
+
+	childrenMap := make(map[string][]HierarchicalGroup)
+	for _, group := range groups {
+		hg := HierarchicalGroup{WorkspaceGroup: group}
+		childrenMap[group.ParentID] = append(childrenMap[group.ParentID], hg)
+	}
+
+	var rootGroups []HierarchicalGroup
+	for _, group := range groups {
+		if group.ParentID == "" {
+			hg := HierarchicalGroup{WorkspaceGroup: group, Level: 0} // Root level is 0
+			rootGroups = append(rootGroups, hg)
+		}
+	}
+
+	var attachChildren func(*HierarchicalGroup, int)
+	attachChildren = func(hg *HierarchicalGroup, level int) {
+		if children, ok := childrenMap[hg.ID]; ok {
+			sort.Slice(children, func(i, j int) bool {
+				return children[i].Name < children[j].Name
+			})
+			for i := range children {
+				children[i].Level = level + 1 // Increment level for children
+				attachChildren(&children[i], level+1)
+			}
+			hg.Children = children
+		}
+	}
+
+	for i := range rootGroups {
+		attachChildren(&rootGroups[i], 0) // Start recursion for root groups with level 0
+	}
+
+	// Sort root groups by name
+	sort.Slice(rootGroups, func(i, j int) bool {
+		return rootGroups[i].Name < rootGroups[j].Name
+	})
+
+	return rootGroups
 }
 
 // main is the entry point of the application
@@ -1489,18 +1425,23 @@ func main() {
 	// Add the new endpoint for getting workspaces and return HTML
 	http.HandleFunc("/api/workspaces/htmx", server.handleGetWorkspacesHTMX)
 
-	// Add the new endpoint for getting field ID and return HTML
-	http.HandleFunc("/api/field/id/htmx", server.handleGetFieldIDHTMX)
-
 	// Add the new endpoint for getting workspace ID and return HTML
 	http.HandleFunc("/api/workspace/id/htmx", server.handleGetWorkspaceIDHTMX)
 
 	// Add the new endpoint for getting workspace users and return HTML
 	http.HandleFunc("/api/workspace/users/htmx", server.handleGetWorkspaceUsersHTMX)
 
-	// Web interface
+	// Add the new endpoint for getting users and return HTML
+	http.HandleFunc("/api/users/htmx", server.handleGetUsersHTMX)
+
+	// Add the new endpoint for getting user info and return HTML
+	http.HandleFunc("/api/user/info/htmx", server.handleGetUserInfoHTMX)
+
+	// Root handler
 	http.HandleFunc("/", server.handleIndex)
 
-	log.Println("Server starting on http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Printf("Server starting on http://localhost:8080")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }
